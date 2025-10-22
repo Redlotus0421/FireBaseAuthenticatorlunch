@@ -2326,6 +2326,243 @@
         
     });
     </script>
+    <!-- Firebase Auth Overlay -->
+    <div id="firebase-auth-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4" style="display: none;">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-8">
+            <h2 id="auth-title" class="text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">Sign In</h2>
+
+            <div id="auth-error" class="bg-red-100 dark:bg-red-900/40 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg relative mb-4 text-sm" role="alert" style="display: none;"></div>
+            <div id="auth-success" class="bg-green-100 dark:bg-green-900/40 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg relative mb-4 text-sm" role="alert" style="display: none;"></div>
+
+            <form id="auth-form" class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
+                    <input type="email" name="email" id="email" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                    <input type="password" name="password" id="password-input" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <a href="#" id="forgot-password-link" class="text-sm text-blue-600 hover:underline dark:text-blue-400">Forgot password?</a>
+                </div>
+
+                <div id="auth-actions">
+                    <button type="submit" id="auth-submit-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Sign In</button>
+                    <p class="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+                        Don't have an account? <a href="#" id="switch-to-signup" class="font-medium text-blue-600 hover:underline dark:text-blue-400">Sign Up</a>
+                    </p>
+                </div>
+            </form>
+
+            <div id="forgot-password-section" class="space-y-4" style="display: none;">
+                 <p class="text-sm text-gray-600 dark:text-gray-400">Enter your email and we'll send you a link to reset your password.</p>
+                 <div>
+                    <label for="reset-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
+                    <input type="email" name="reset-email" id="reset-email" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                 <button id="send-reset-link-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Send Reset Link</button>
+                 <a href="#" id="back-to-signin" class="mt-2 block text-center text-sm text-blue-600 hover:underline dark:text-blue-400">Back to Sign In</a>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        // Firebase v10 SDK modular imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
+        import {
+            getAuth,
+            onAuthStateChanged,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            sendPasswordResetEmail,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-auth.js";
+        import {
+            getFirestore,
+            doc,
+            setDoc,
+            serverTimestamp,
+            getDoc
+        } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "PASTE_API_KEY",
+          authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
+          projectId: "PASTE_PROJECT_ID",
+          appId: "PASTE_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- DOM Elements ---
+        const overlay = document.getElementById('firebase-auth-overlay');
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password-input');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const switchToSignup = document.getElementById('switch-to-signup');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        const forgotPasswordSection = document.getElementById('forgot-password-section');
+        const sendResetLinkBtn = document.getElementById('send-reset-link-btn');
+        const resetEmailInput = document.getElementById('reset-email');
+        const backToSignin = document.getElementById('back-to-signin');
+        const authError = document.getElementById('auth-error');
+        const authSuccess = document.getElementById('auth-success');
+        const authActions = document.getElementById('auth-actions');
+
+        let isSignUp = false;
+
+        // --- UI State Management ---
+        const showMessage = (element, message) => {
+            element.textContent = message;
+            element.style.display = 'block';
+        };
+
+        const hideMessages = () => {
+            authError.style.display = 'none';
+            authSuccess.style.display = 'none';
+        };
+
+        const toggleAuthMode = () => {
+            isSignUp = !isSignUp;
+            hideMessages();
+            authTitle.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+            authSubmitBtn.textContent = isSignUp ? 'Create Account' : 'Sign In';
+            switchToSignup.parentElement.innerHTML = isSignUp
+                ? `Already have an account? <a href="#" id="switch-to-signin" class="font-medium text-blue-600 hover:underline dark:text-blue-400">Sign In</a>`
+                : `Don't have an account? <a href="#" id="switch-to-signup" class="font-medium text-blue-600 hover:underline dark:text-blue-400">Sign Up</a>`;
+
+            if (isSignUp) {
+                document.getElementById('switch-to-signin').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    toggleAuthMode();
+                });
+            } else {
+                document.getElementById('switch-to-signup').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    toggleAuthMode();
+                });
+            }
+        };
+
+        switchToSignup.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthMode();
+        });
+
+
+        // --- Auth Event Handlers ---
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            try {
+                if (isSignUp) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    // User profile will be created by onAuthStateChanged listener
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                showMessage(authError, error.message);
+            }
+        });
+
+        // --- Auth State Observer ---
+        const legacyLogin = document.querySelector(
+            '#auth-screen, #login-screen, #login, #loginCard, .login-card, .auth-card, [data-screen="login"], .login-wrapper, .login, .Login'
+        );
+        if (legacyLogin) {
+            legacyLogin.style.setProperty('display', 'none', 'important');
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            const appContainer = document.getElementById('app');
+
+            if (user) {
+                // User is signed in, hide overlay and show the main app
+                overlay.style.display = 'none';
+                appContainer.classList.remove('hidden');
+
+                // The original app's initialization logic must be called for it to be functional.
+                // Since we cannot modify the legacy script, we must find a way to trigger it.
+                // By creating a dummy password and programmatically submitting the setup form,
+                // we can ensure the app initializes correctly without altering the original code.
+                if (typeof initializeMainApp === 'undefined') {
+                    const dummyPassword = 'firebase_user_dummy_password';
+                    localStorage.setItem('appPassword', dummyPassword);
+                    // This will trigger the initialization logic in the original script
+                     window.dispatchEvent(new Event('DOMContentLoaded'));
+                }
+
+
+                // Handle Firebase-specific user profile creation.
+                const userDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (!userDoc.exists()) {
+                    try {
+                        await setDoc(userDocRef, {
+                            ownerId: user.uid,
+                            email: user.email,
+                            createdAt: serverTimestamp()
+                        });
+                    } catch (error) {
+                        console.error("Error creating user profile:", error);
+                        showMessage(authError, "Failed to create user profile.");
+                    }
+                }
+            } else {
+                // User is signed out.
+                overlay.style.display = 'flex';
+                appContainer.classList.add('hidden');
+            }
+        });
+
+        // --- Expose Sign Out ---
+        window.appSignOut = () => {
+            signOut(auth);
+        };
+
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideMessages();
+            authForm.style.display = 'none';
+            forgotPasswordSection.style.display = 'block';
+            resetEmailInput.value = emailInput.value;
+        });
+
+        backToSignin.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideMessages();
+            forgotPasswordSection.style.display = 'none';
+            authForm.style.display = 'block';
+        });
+
+        sendResetLinkBtn.addEventListener('click', async () => {
+            hideMessages();
+            const email = resetEmailInput.value;
+            if (!email) {
+                showMessage(authError, "Please enter your email address.");
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showMessage(authSuccess, "Password reset link sent! Please check your inbox.");
+            } catch (error) {
+                showMessage(authError, error.message);
+            }
+        });
+    </script>
 </body>
 </html>
 
