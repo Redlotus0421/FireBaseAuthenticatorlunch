@@ -1,0 +1,2331 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motorcycle Fleet Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --background: 240 10% 99%;
+            --foreground: 222.2 84% 4.9%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 84% 4.9%;
+            --popover: 0 0% 100%;
+            --popover-foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --card: 222.2 84% 4.9%;
+            --card-foreground: 210 40% 98%;
+            --popover: 222.2 84% 4.9%;
+            --popover-foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: 'Inter', sans-serif;
+        }
+
+        .card {
+            background-color: hsl(var(--card));
+            color: hsl(var(--card-foreground));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+        }
+        
+        .btn-primary {
+             background-color: hsl(var(--primary));
+             color: hsl(var(--primary-foreground));
+        }
+        
+        .btn-secondary {
+            background-color: hsl(var(--secondary));
+            color: hsl(var(--secondary-foreground));
+        }
+        
+        .input {
+            background-color: hsl(var(--input));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+        }
+
+        .modal-bg {
+            background-color: rgba(0,0,0,0.5);
+        }
+        .status-badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 9999px;
+            margin-top: 2px;
+        }
+        .status-paid {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .dark .status-paid {
+            background-color: #14532d;
+            color: #bbf7d0;
+        }
+        .status-unpaid {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .dark .status-unpaid {
+            background-color: #7f1d1d;
+            color: #fecaca;
+        }
+        .status-partial {
+            background-color: #fef9c3;
+            color: #854d0e;
+        }
+        .dark .status-partial {
+            background-color: #713f12;
+            color: #fef08a;
+        }
+        .status-rest {
+            background-color: #e2e8f0;
+            color: #475569;
+        }
+        .dark .status-rest {
+            background-color: #334155;
+            color: #cbd5e1;
+        }
+    </style>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="antialiased">
+    <div id="auth-screen" class="flex items-center justify-center h-screen bg-slate-100 dark:bg-gray-900">
+    </div>
+
+    <div id="app" class="flex h-screen overflow-hidden hidden">
+        <!-- Sidebar -->
+        <nav class="w-64 bg-card border-r border-border p-4 hidden md:flex flex-col">
+            <div class="flex items-center gap-2 mb-8">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-primary"><path d="m21.7 16.4-1.8-1.8-1.1 1.1a2.83 2.83 0 0 1-4 0L12 13l-1.8 1.8a2.83 2.83 0 0 1-4 0L2.3 10.9a2.83 2.83 0 0 1 0-4l3.9-3.9a2.83 2.83 0 0 1 4 0l1.8 1.8L15 2l2.8 2.8a2.83 2.83 0 0 1 0 4Z"></path><path d="m15 9 3 3"></path><path d="M9.5 14.5 12 12"></path><path d="m2 22 3-3"></path><path d="m7 17 3-3"></path></svg>
+                <h1 class="text-xl font-bold">Fleet Manager</h1>
+            </div>
+            <ul class="space-y-2">
+                <li><a href="#" id="nav-summary" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="pie-chart"></i> Summary</a></li>
+                <li><a href="#" id="nav-members" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="users"></i> Members List</a></li>
+                <li><a href="#" id="nav-payments" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="circle-dollar-sign"></i> Payments</a></li>
+                <li><a href="#" id="nav-expenses" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="receipt"></i> Expenses</a></li>
+                <li><a href="#" id="nav-benefits" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="gift"></i> Benefits</a></li>
+                <li><a href="#" id="nav-settings" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="settings"></i> Settings</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-background">
+             <!-- Header -->
+            <header class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-border bg-card">
+                <div class="flex items-center gap-4 flex-1">
+                    <button id="mobile-menu-btn" class="md:hidden p-2 rounded-md hover:bg-accent">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="relative w-full max-w-xs sm:max-w-sm md:max-w-md">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground"></i>
+                        <input id="search-box" type="text" placeholder="Search members..." class="w-full pl-10 pr-4 py-2 rounded-lg bg-secondary border border-transparent focus:bg-background focus:border-ring outline-none transition-all">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-end">
+                    <div class="hidden sm:flex items-center gap-2">
+                        <span class="text-sm text-muted-foreground">Role:</span>
+                        <select id="user-role-selector" class="bg-transparent font-medium focus:outline-none">
+                            <option value="manager@example.com">Manager</option>
+                            <option value="staff@example.com">Staff</option>
+                            <option value="viewer@example.com">Viewer</option>
+                        </select>
+                    </div>
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-accent">
+                        <i data-lucide="sun" class="block dark:hidden"></i>
+                        <i data-lucide="moon" class="hidden dark:block"></i>
+                    </button>
+                    <button id="add-member-btn" class="btn-primary p-2 sm:px-4 sm:py-2 rounded-lg font-semibold flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="h-5 w-5"></i>
+                        <span class="hidden sm:inline">New Member</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div id="page-content" class="flex-1 overflow-y-auto p-4 md:p-6">
+                <!-- Content will be rendered here -->
+            </div>
+        </main>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="fixed inset-0 bg-black/50 z-40 hidden">
+             <nav class="w-64 bg-card h-full p-4 flex flex-col">
+                <div class="flex items-center justify-between mb-8">
+                     <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-primary"><path d="m21.7 16.4-1.8-1.8-1.1 1.1a2.83 2.83 0 0 1-4 0L12 13l-1.8 1.8a2.83 2.83 0 0 1-4 0L2.3 10.9a2.83 2.83 0 0 1 0-4l3.9-3.9a2.83 2.83 0 0 1 4 0l1.8 1.8L15 2l2.8 2.8a2.83 2.83 0 0 1 0 4Z"></path><path d="m15 9 3 3"></path><path d="M9.5 14.5 12 12"></path><path d="m2 22 3-3"></path><path d="m7 17 3-3"></path></svg>
+                        <h1 class="text-xl font-bold">Fleet Manager</h1>
+                    </div>
+                    <button id="close-mobile-menu-btn" class="p-2"><i data-lucide="x"></i></button>
+                </div>
+                <ul class="space-y-2">
+                     <li><a href="#" id="mobile-nav-summary" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="pie-chart"></i> Summary</a></li>
+                     <li><a href="#" id="mobile-nav-members" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="users"></i> Members List</a></li>
+                     <li><a href="#" id="mobile-nav-payments" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="circle-dollar-sign"></i> Payments</a></li>
+                     <li><a href="#" id="mobile-nav-expenses" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="receipt"></i> Expenses</a></li>
+                     <li><a href="#" id="mobile-nav-benefits" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="gift"></i> Benefits</a></li>
+                     <li><a href="#" id="mobile-nav-settings" class="nav-link flex items-center gap-3 p-2 rounded-lg font-medium text-muted-foreground hover:bg-accent"><i data-lucide="settings"></i> Settings</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Modal Placeholder -->
+        <div id="modal-placeholder"></div>
+
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // --- IndexedDB Wrapper ---
+        const idb = {
+            db: null,
+            init(dbName, version, stores) {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(dbName, version);
+                    request.onerror = () => reject("Error opening DB");
+                    request.onsuccess = (event) => {
+                        this.db = event.target.result;
+                        resolve(this.db);
+                    };
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        stores.forEach(storeName => {
+                            if (!db.objectStoreNames.contains(storeName)) {
+                                db.createObjectStore(storeName);
+                            }
+                        });
+                    };
+                });
+            },
+            get(storeName, key) {
+                return new Promise((resolve, reject) => {
+                    if (!this.db) return reject("DB not initialized");
+                    const transaction = this.db.transaction(storeName, 'readonly');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.get(key);
+                    request.onerror = () => reject("Error getting data");
+                    request.onsuccess = () => resolve(request.result);
+                });
+            },
+            set(storeName, key, value) {
+                return new Promise((resolve, reject) => {
+                    if (!this.db) return reject("DB not initialized");
+                    const transaction = this.db.transaction(storeName, 'readwrite');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.put(value, key);
+                    request.onerror = () => reject("Error setting data");
+                    request.onsuccess = () => resolve(request.result);
+                });
+            }
+        };
+
+        // --- DATA ---
+        let data = {};
+        const initialData = {
+            members: [
+                {MemberID: "M-0001", FullName: "Juan Dela Cruz", Birthdate: "1990-10-22", Gender: "Male", Phones: "09171234567", Address: "123 Rizal St, Davao City", Photo: "", CreatedAt: "2025-10-21T20:20:00Z", Active: true},
+                {MemberID: "M-0002", FullName: "Maria Santos", Birthdate: "1995-11-22", Gender: "Female", Phones: "09287654321", Address: "456 Bonifacio St, Davao City", Photo: "", CreatedAt: "2025-10-21T20:21:00Z", Active: true},
+                {MemberID: "M-0003", FullName: "Pedro Reyes", Birthdate: "1988-01-30", Gender: "Male", Phones: "09159876543", Address: "789 Quezon Blvd, Davao City", Photo: "", CreatedAt: "2025-10-21T20:22:00Z", Active: true}
+            ],
+            vehicles: [
+                {VehicleID: "V-0001", MemberID: "M-0001", MakeType: "Honda Click 125i", PlateNo: "MC1234", EngineNo: "ENG001", ChassisNo: "CHS001", Color: "Red", YearModel: 2023, MotorcyclePhoto: ""},
+                {VehicleID: "V-0002", MemberID: "M-0002", MakeType: "Yamaha NMAX", PlateNo: "MC5678", EngineNo: "ENG002", ChassisNo: "CHS002", Color: "Black", YearModel: 2024, MotorcyclePhoto: ""},
+                {VehicleID: "V-0003", MemberID: "M-0003", MakeType: "Suzuki Raider 150", PlateNo: "MC9101", EngineNo: "ENG003", ChassisNo: "CHS003", Color: "Blue", YearModel: 2022, MotorcyclePhoto: ""}
+            ],
+            contracts: [
+                {ContractID: "C-0001", MemberID: "M-0001", Status: "Active", StartDate: "2025-09-15", EndDate: "2026-09-15", TotalAmount: 78250, Balance: 77500, Daily: 250, Notes: "Standard 1-year rent-to-own contract", CreatedAt: "2025-10-21T20:25:00Z"},
+                {ContractID: "C-0002", MemberID: "M-0002", Status: "Active", StartDate: "2025-09-15", EndDate: "2026-09-15", TotalAmount: 78250, Balance: 78000, Daily: 250, Notes: "Rent-to-own, includes comprehensive insurance", CreatedAt: "2025-10-21T20:26:00Z"},
+                {ContractID: "C-0003", MemberID: "M-0003", Status: "Closed", StartDate: "2024-05-01", EndDate: "2025-05-01", TotalAmount: 56340, Balance: 0, Daily: 180, Notes: "Contract fully paid", CreatedAt: "2025-10-21T20:27:00Z"}
+            ],
+            contractFiles: [
+                {ContractFileID: "CF-0001", ContractID: "C-0001", FileName: "ORCR_M-0001.pdf", File: "", FileURL: "", ContentType: "application/pdf", UploadedAt: "2025-10-21T20:30:00Z"},
+                {ContractFileID: "CF-0002", ContractID: "C-0001", FileName: "License_M-0001.jpg", File: "", FileURL: "", ContentType: "image/jpeg", UploadedAt: "2025-10-21T20:30:15Z"},
+                {ContractFileID: "CF-0003", ContractID: "C-0002", FileName: "DeedOfSale_M-0002.pdf", File: "", FileURL: "", ContentType: "application/pdf", UploadedAt: "2025-10-21T20:31:00Z"}
+            ],
+            payments: [
+                {PaymentID: "P-0001", MemberID: "M-0001", ContractID: "C-0001", Date: "2025-10-21", Amount: 200, Method: "GCash", Notes: "Daily payment"},
+                {PaymentID: "P-0002", MemberID: "M-0002", ContractID: "C-0002", Date: "2025-10-21", Amount: 250, Method: "Cash", Notes: "Daily payment"},
+                {PaymentID: "P-0003", MemberID: "M-0001", ContractID: "C-0001", Date: "2025-10-20", Amount: 100, Method: "GCash", Notes: "Partial payment"},
+                ...Array.from({length: 26}, (_, i) => {
+                    let date = new Date(Date.UTC(2025, 8, 15));
+                    let addedDays = 0;
+                    let safety = 0;
+                    while (addedDays < i && safety < 50) {
+                        date.setUTCDate(date.getUTCDate() + 1);
+                        if (date.getUTCDay() !== 0) {
+                            addedDays++;
+                        }
+                        safety++;
+                    }
+                    return {
+                        PaymentID: `P-F00${i+1}`, MemberID: 'M-0001', ContractID: 'C-0001', 
+                        Date: date.toISOString().split('T')[0],
+                        Amount: 250, Method: 'Cash', Notes: 'Prev Cycle Payment'
+                    }
+                })
+            ],
+            expenses: [
+                {ExpenseID: "E-0001", MemberID: "M-0001", Date: "2025-10-15", Category: "Maintenance", Amount: 500, Notes: "Change oil and tune-up"},
+                {ExpenseID: "E-0002", MemberID: "M-0002", Date: "2025-10-18", Category: "Repairs", Amount: 1200, Notes: "Flat tire repair and vulcanizing"},
+                {ExpenseID: "E-0003", MemberID: null, Date: "2025-10-20", Category: "Fuel", Amount: 300, Notes: "Gas for office errands"}
+            ],
+            benefits: [
+                 {BenefitID: "B-0002", MemberID: "M-0003", Type: "Discount", Date: "2025-04-30", Amount: 500, Notes: "Discount for early contract completion"}
+            ],
+            users: [
+                {UserEmail: "manager@example.com", Role: "Manager", Theme: "Dark", Active: true},
+                {UserEmail: "staff@example.com", Role: "Staff", Theme: "Light", Active: true},
+                {UserEmail: "viewer@example.com", Role: "Viewer", Theme: "Light", Active: true}
+            ]
+        };
+
+        const updateAndSaveData = async (updateFn) => {
+            updateFn();
+            await idb.set('data', 'appData', data);
+        };
+        
+        // --- STATE ---
+        let state = {
+            currentUser: null,
+            currentPage: 'members',
+            selectedMemberId: null,
+            searchTerm: '',
+            calendarDate: new Date(),
+            summaryDate: new Date(),
+            newMemberPhotos: { member: null, motorcycle: null },
+            isAuthenticated: false
+        };
+
+        // --- ELEMENTS ---
+        const pageContent = document.getElementById('page-content');
+        const searchBox = document.getElementById('search-box');
+        const roleSelector = document.getElementById('user-role-selector');
+        const themeToggle = document.getElementById('theme-toggle');
+        const addMemberBtn = document.getElementById('add-member-btn');
+        const html = document.documentElement;
+        const appContainer = document.getElementById('app');
+        const authScreen = document.getElementById('auth-screen');
+
+        // --- HELPERS ---
+        const formatCurrency = (amount) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+        const formatCurrencyForPDF = (amount) => {
+            const numberPart = new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+            return `PHP ${numberPart}`;
+        };
+        const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        
+        const getFileIcon = (contentType) => {
+            if(contentType.includes('pdf')) return '<i data-lucide="file-text" class="text-red-500"></i>';
+            if(contentType.includes('image')) return '<i data-lucide="image" class="text-blue-500"></i>';
+            if(contentType.includes('doc')) return '<i data-lucide="file-text" class="text-blue-600"></i>';
+            return '<i data-lucide="file" class="text-gray-500"></i>';
+        };
+
+        const generateNewID = (prefix, collection, key) => {
+            const lastItem = collection.sort((a,b) => (a[key] > b[key] ? 1 : -1)).slice(-1)[0];
+            if (!lastItem) return `${prefix}-0001`;
+            const lastIdNum = parseInt(lastItem[key].split('-')[1]);
+            const newIdNum = lastIdNum + 1;
+            return `${prefix}-` + String(newIdNum).padStart(4, '0');
+        };
+
+        // --- THEME MANAGEMENT ---
+        const applyTheme = (theme) => {
+            if (theme === 'Dark') {
+                html.classList.add('dark');
+            } else {
+                html.classList.remove('dark');
+            }
+        };
+
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const newTheme = html.classList.contains('dark') ? 'Dark' : 'Light';
+            updateAndSaveData(() => {
+                const user = data.users.find(u => u.UserEmail === state.currentUser.UserEmail);
+                if(user) user.Theme = newTheme;
+                state.currentUser.Theme = newTheme;
+            });
+            renderCurrentPage();
+        });
+
+
+        // --- ROLE & PERMISSIONS ---
+        roleSelector.addEventListener('change', (e) => {
+            const selectedUser = data.users.find(u => u.UserEmail === e.target.value);
+            if (selectedUser) {
+                state.currentUser = selectedUser;
+                applyTheme(state.currentUser.Theme);
+                renderCurrentPage();
+            }
+        });
+        
+        const can = (action) => {
+            const role = state.currentUser?.Role;
+            if (role === 'Manager') return true;
+            if (role === 'Staff') return ['add_payment', 'edit_payment', 'add_file', 'add_expense'].includes(action);
+            return false; // Viewer
+        };
+        
+        // --- NAVIGATION ---
+        const handleNav = (page) => {
+            state.currentPage = page;
+            state.selectedMemberId = null;
+            searchBox.value = '';
+            state.searchTerm = '';
+            
+            document.querySelectorAll('.nav-link').forEach(l => {
+                l.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'text-blue-700', 'dark:text-blue-300');
+                l.classList.add('text-muted-foreground', 'hover:bg-accent');
+            });
+
+            const activeLinks = document.querySelectorAll(`#nav-${page}, #mobile-nav-${page}`);
+            activeLinks.forEach(link => {
+                if (link) {
+                    link.classList.add('bg-blue-100', 'dark:bg-blue-900/40', 'text-blue-700', 'dark:text-blue-300');
+                    link.classList.remove('text-muted-foreground', 'hover:bg-accent');
+                }
+            });
+
+            document.getElementById('mobile-menu').classList.add('hidden');
+            renderCurrentPage();
+        };
+
+        document.querySelectorAll('#nav-summary, #mobile-nav-summary').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); handleNav('summary'); }));
+        document.querySelectorAll('#nav-members, #mobile-nav-members').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); handleNav('members'); }));
+        document.querySelectorAll('#nav-payments, #mobile-nav-payments').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); handleNav('payments'); }));
+        document.querySelectorAll('#nav-expenses, #mobile-nav-expenses').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); handleNav('expenses'); }));
+        document.querySelectorAll('#nav-benefits, #mobile-nav-benefits').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); handleNav('benefits'); }));
+        document.querySelectorAll('#nav-settings, #mobile-nav-settings').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); handleNav('settings'); }));
+
+
+        // --- RENDERING ---
+        const renderCurrentPage = () => {
+            if (!state.isAuthenticated) return;
+            pageContent.innerHTML = '';
+            const isMemberPage = state.currentPage === 'members' && !state.selectedMemberId;
+            addMemberBtn.style.display = can('add_member') && isMemberPage ? 'flex' : 'none';
+            
+            if (state.currentPage === 'members') {
+                if (state.selectedMemberId) {
+                    renderMemberDetail(state.selectedMemberId);
+                } else {
+                    renderMembersList();
+                }
+            } else if (state.currentPage === 'payments') {
+                renderPaymentsList();
+            } else if (state.currentPage === 'expenses') {
+                renderExpensesPage();
+            } else if (state.currentPage === 'benefits') {
+                renderBenefitsPage();
+            } else if (state.currentPage === 'summary') {
+                renderSummaryPage();
+            } else if (state.currentPage === 'settings') {
+                renderSettingsPage();
+            } else {
+                renderPlaceholderPage(state.currentPage);
+            }
+            lucide.createIcons();
+        };
+        
+        const renderMembersList = () => {
+             const filteredMembers = data.members.filter(m => 
+                m.Active && m.FullName.toLowerCase().includes(state.searchTerm.toLowerCase())
+             );
+
+             const listHTML = filteredMembers.map(member => {
+                 const vehicle = data.vehicles.find(v => v.MemberID === member.MemberID);
+                 const contract = data.contracts.find(c => c.MemberID === member.MemberID && c.Status === 'Active') || data.contracts.find(c => c.MemberID === member.MemberID);
+                 const imageSrc = member.Photo ? member.Photo : `https://placehold.co/80x80/E2E8F0/475569?text=${member.FullName.charAt(0)}`;
+                 
+                 return `
+                    <div class="card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer" onclick="app.selectMember('${member.MemberID}')">
+                        <img src="${imageSrc}" alt="${member.FullName}" class="w-16 h-16 rounded-full object-cover self-center sm:self-auto">
+                        <div class="flex-1 w-full">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                                <div>
+                                    <h3 class="font-bold text-lg">${member.FullName}</h3>
+                                    <p class="text-sm text-muted-foreground">${vehicle ? vehicle.MakeType : 'No Vehicle'}</p>
+                                </div>
+                                <div class="text-left sm:text-right mt-2 sm:mt-0">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${contract && contract.Status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}">
+                                        ${contract ? contract.Status : 'No Contract'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-border w-full flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-xs">
+                                <span class="flex items-center gap-1"><i data-lucide="phone" class="h-3 w-3"></i> ${member.Phones}</span>
+                                <span class="flex items-center gap-1"><i data-lucide="map-pin" class="h-3 w-3"></i> ${member.Address}</span>
+                            </div>
+                        </div>
+                        <div class="w-full sm:w-auto text-center sm:text-right border-t sm:border-none border-border pt-2 sm:pt-0">
+                           <span class="px-2 py-1 text-xs font-semibold rounded-full ${contract && contract.Status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}">
+                                ${contract ? contract.Status : 'No Contract'}
+                           </span>
+                           <p class="text-lg font-bold mt-2">${formatCurrency(contract ? contract.Balance : 0)}</p>
+                           <p class="text-xs text-muted-foreground">Overall Balance</p>
+                        </div>
+                        <i data-lucide="chevron-right" class="text-slate-400"></i>
+                    </div>
+                 `;
+             }).join('');
+
+            pageContent.innerHTML = `<div class="grid grid-cols-1 gap-4">${listHTML || '<p class="text-center text-muted-foreground">No members found.</p>'}</div>`;
+        };
+        
+        const renderMemberDetail = (memberId) => {
+            const member = data.members.find(m => m.MemberID === memberId);
+            if (!member) { state.selectedMemberId = null; renderMembersList(); return; }
+
+            const vehicle = data.vehicles.find(v => v.MemberID === member.MemberID);
+            const contract = data.contracts.find(c => c.MemberID === member.MemberID && c.Status === 'Active') || data.contracts.find(c => c.MemberID === member.MemberID);
+            const files = contract ? data.contractFiles.filter(f => f.ContractID === contract.ContractID) : [];
+            const memberPayments = data.payments.filter(p => p.MemberID === memberId).sort((a, b) => new Date(b.Date) - new Date(a.Date));
+            
+            const memberImageSrc = member.Photo ? member.Photo : `https://placehold.co/80x80/E2E8F0/475569?text=${member.FullName.charAt(0)}`;
+            const vehicleImageSrc = vehicle && vehicle.MotorcyclePhoto ? vehicle.MotorcyclePhoto : `https://placehold.co/400x250/E2E8F0/475569?text=${vehicle ? vehicle.MakeType : 'Vehicle'}`;
+
+            let cycleSummaryHTML = '';
+            if (contract && contract.Status === 'Active') {
+                const contractStartDay = new Date(contract.StartDate + 'T00:00:00Z').getUTCDate();
+                const today = new Date();
+                let cycleStart, cycleEnd;
+
+                if (today.getUTCDate() < contractStartDay) {
+                    cycleStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, contractStartDay));
+                    cycleEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), contractStartDay - 1));
+                } else {
+                    cycleStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), contractStartDay));
+                    cycleEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, contractStartDay - 1));
+                }
+                
+                const contractStartDate = new Date(contract.StartDate + 'T00:00:00Z');
+                const contractEndDate = new Date(contract.EndDate + 'T00:00:00Z');
+                if (cycleStart < contractStartDate) cycleStart = contractStartDate;
+                if (cycleEnd > contractEndDate) cycleEnd = contractEndDate;
+
+                let cyclePayable = 0;
+                let cyclePaid = 0;
+                let currentCycleDate = new Date(cycleStart);
+                while (currentCycleDate <= cycleEnd) {
+                    if (currentCycleDate.getUTCDay() !== 0) {
+                        cyclePayable += contract.Daily;
+                        const dateStr = currentCycleDate.toISOString().split('T')[0];
+                        const payment = data.payments.find(p => p.ContractID === contract.ContractID && p.Date === dateStr);
+                        if (payment) {
+                            cyclePaid += payment.Amount;
+                        }
+                    }
+                    currentCycleDate.setUTCDate(currentCycleDate.getUTCDate() + 1);
+                }
+                const cycleUnpaid = cyclePayable - cyclePaid;
+
+                cycleSummaryHTML = `
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold mb-4">Current Cycle Summary</h3>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Payable</p>
+                            <p class="text-2xl font-bold">${formatCurrency(cyclePayable)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Paid</p>
+                            <p class="text-2xl font-bold text-green-600">${formatCurrency(cyclePaid)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Unpaid</p>
+                            <p class="text-2xl font-bold text-red-600">${formatCurrency(cycleUnpaid)}</p>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
+
+            const detailHTML = `
+                <div>
+                    <input type="file" id="contract-file-input" class="hidden" multiple onchange="app.handleContractFileUpload(this.files, '${contract ? contract.ContractID : ''}')" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                    <button onclick="app.unselectMember()" class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground mb-4">
+                        <i data-lucide="arrow-left"></i> Back to Members List
+                    </button>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Left Column: Member & Vehicle -->
+                        <div class="md:col-span-1 space-y-6">
+                            <div class="card p-6">
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+                                     <img src="${memberImageSrc}" alt="${member.FullName}" class="w-20 h-20 rounded-full object-cover">
+                                     <div>
+                                        <h2 class="text-2xl font-bold">${member.FullName}</h2>
+                                        <p class="text-muted-foreground">${member.MemberID}</p>
+                                     </div>
+                                </div>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong class="font-medium">Gender:</strong> ${member.Gender}</p>
+                                    <p><strong class="font-medium">Birthdate:</strong> ${formatDate(member.Birthdate)}</p>
+                                    <p><strong class="font-medium">Phone:</strong> ${member.Phones}</p>
+                                    <p><strong class="font-medium">Address:</strong> ${member.Address}</p>
+                                </div>
+                            </div>
+
+                             ${vehicle ? `
+                            <div class="card p-6">
+                                <h3 class="text-lg font-bold mb-4">Motorcycle Details</h3>
+                                <img src="${vehicleImageSrc}" alt="${vehicle.MakeType}" class="w-full h-48 rounded-lg mb-4 object-cover">
+                                <div class="space-y-2 text-sm">
+                                    <p><strong class="font-medium">Make & Type:</strong> ${vehicle.MakeType}</p>
+                                    <p><strong class="font-medium">Plate No:</strong> <span class="font-mono bg-secondary px-2 py-1 rounded">${vehicle.PlateNo}</span></p>
+                                    <p><strong class="font-medium">Engine No:</strong> ${vehicle.EngineNo}</p>
+                                    <p><strong class="font-medium">Chassis No:</strong> ${vehicle.ChassisNo}</p>
+                                    <p><strong class="font-medium">Color:</strong> ${vehicle.Color}</p>
+                                    <p><strong class="font-medium">Year:</strong> ${vehicle.YearModel}</p>
+                                </div>
+                            </div>
+                            ` : '<div class="card p-6"><p>No vehicle information.</p></div>'}
+                        </div>
+                        
+                        <!-- Right Column: Contract, Files, Payments -->
+                        <div class="md:col-span-2 space-y-6">
+                            ${contract ? `
+                            <div class="card">
+                                <div class="p-6">
+                                     <div class="flex flex-wrap justify-between items-start gap-2">
+                                        <div>
+                                            <h3 class="text-xl font-bold">Contract Details</h3>
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${contract.Status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}">
+                                                ${contract.Status}
+                                            </span>
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <button onclick="app.showEditMemberModal('${member.MemberID}')" class="btn-secondary px-3 py-1.5 rounded-md text-sm font-semibold ${can('edit_member') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('edit_member') ? '' : 'disabled'}>Edit</button>
+                                            <button onclick="alert('Update contract functionality not yet implemented.')" class="btn-secondary px-3 py-1.5 rounded-md text-sm font-semibold ${can('edit_contract') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('edit_contract') ? '' : 'disabled'}>Update Contract</button>
+                                            <button onclick="app.deleteMember('${member.MemberID}')" class="bg-red-500 text-white px-3 py-1.5 rounded-md text-sm font-semibold ${can('delete_member') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('delete_member') ? '' : 'disabled'}>Delete</button>
+                                        </div>
+                                     </div>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 text-center">
+                                        <div>
+                                            <p class="text-xs text-muted-foreground">Total Amount</p>
+                                            <p class="text-lg font-bold">${formatCurrency(contract.TotalAmount)}</p>
+                                        </div>
+                                         <div>
+                                            <p class="text-xs text-muted-foreground">Balance</p>
+                                            <p class="text-lg font-bold text-red-500">${formatCurrency(contract.Balance)}</p>
+                                        </div>
+                                         <div>
+                                            <p class="text-xs text-muted-foreground">Daily Payment</p>
+                                            <p class="text-lg font-bold">${formatCurrency(contract.Daily)}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-muted-foreground">End Date</p>
+                                            <p class="text-lg font-bold">${formatDate(contract.EndDate)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-t border-border p-6">
+                                    <h4 class="font-bold mb-3">Contract Files</h4>
+                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        ${files.map(file => `
+                                            <a href="${file.File || '#'}" download="${file.FileName}" class="flex items-center gap-2 bg-secondary p-2 rounded-md hover:bg-accent ${file.File ? '' : 'opacity-50 cursor-not-allowed'}">
+                                                ${getFileIcon(file.ContentType)}
+                                                <span class="text-sm truncate">${file.FileName}</span>
+                                            </a>
+                                        `).join('')}
+                                        <button onclick="document.getElementById('contract-file-input').click()" class="flex items-center justify-center gap-2 bg-secondary p-2 rounded-md hover:bg-accent border-2 border-dashed border-border text-muted-foreground ${can('add_file') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('add_file') ? '' : 'disabled'}>
+                                            <i data-lucide="plus"></i> <span class="text-sm">Add File</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : '<div class="card p-6"><p>No contract information.</p></div>'}
+                            
+                            <div class="card p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                     <h3 class="text-xl font-bold">Payment Calendar</h3>
+                                     <div class="flex items-center gap-2">
+                                         <button onclick="app.exportMonthlyPDF('${member.MemberID}')" class="btn-secondary px-3 py-1.5 rounded-md text-sm font-semibold flex items-center gap-2 ${can('export') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('export') ? '' : 'disabled'}>
+                                            <i data-lucide="file-down" class="h-4 w-4"></i> Export
+                                         </button>
+                                         <button onclick="app.exportForMember('${member.MemberID}')" class="btn-secondary px-3 py-1.5 rounded-md text-sm font-semibold flex items-center gap-2 ${can('export') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('export') ? '' : 'disabled'}>
+                                            <i data-lucide="share-2" class="h-4 w-4"></i> Share
+                                         </button>
+                                     </div>
+                                </div>
+                                <div id="payment-calendar-container">
+                                    <!-- Calendar will be rendered here by JS -->
+                                </div>
+                            </div>
+                            
+                            ${cycleSummaryHTML}
+
+                            <div class="card p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                     <h3 class="text-xl font-bold">Payment History</h3>
+                                     <button onclick="app.showPaymentModal('${member.MemberID}', '${contract ? contract.ContractID : ''}')" class="btn-primary px-3 py-1.5 rounded-md text-sm font-semibold flex items-center gap-2 ${can('add_payment') && contract ? '' : 'opacity-50 cursor-not-allowed'}" ${can('add_payment') && contract ? '' : 'disabled'}>
+                                        <i data-lucide="plus" class="h-4 w-4"></i> Add Payment
+                                     </button>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm text-left">
+                                        <thead class="text-xs text-muted-foreground uppercase bg-muted/50">
+                                            <tr>
+                                                <th class="px-4 py-2">Date</th>
+                                                <th class="px-4 py-2">Amount</th>
+                                                <th class="px-4 py-2">Method</th>
+                                                <th class="px-4 py-2">Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${memberPayments.map(p => `
+                                                <tr class="border-b border-border">
+                                                    <td class="px-4 py-2">${formatDate(p.Date)}</td>
+                                                    <td class="px-4 py-2 font-medium">${formatCurrency(p.Amount)}</td>
+                                                    <td class="px-4 py-2">${p.Method}</td>
+                                                    <td class="px-4 py-2 text-muted-foreground">${p.Notes}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                ${memberPayments.length === 0 ? '<p class="text-center text-muted-foreground mt-4">No payments recorded.</p>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            pageContent.innerHTML = detailHTML;
+            renderCalendar(state.calendarDate.getFullYear(), state.calendarDate.getMonth(), member, contract);
+        };
+        
+        const renderPaymentsList = () => {
+             const paymentsHTML = data.payments
+                .sort((a, b) => new Date(b.Date) - new Date(a.Date))
+                .map(p => {
+                    const member = data.members.find(m => m.MemberID === p.MemberID);
+                    return `
+                     <tr class="border-b border-border">
+                        <td class="px-4 py-3 font-medium">${member ? member.FullName : 'Unknown'}</td>
+                        <td class="px-4 py-3">${formatDate(p.Date)}</td>
+                        <td class="px-4 py-3 font-semibold text-green-600 dark:text-green-400">${formatCurrency(p.Amount)}</td>
+                        <td class="px-4 py-3">${p.Method}</td>
+                        <td class="px-4 py-3 text-muted-foreground">${p.Notes}</td>
+                     </tr>
+                    `;
+                }).join('');
+
+            pageContent.innerHTML = `
+                <div class="card p-6">
+                    <h2 class="text-2xl font-bold mb-4">All Payments</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-muted-foreground uppercase bg-muted/50">
+                                <tr>
+                                    <th class="px-4 py-2">Member</th>
+                                    <th class="px-4 py-2">Date</th>
+                                    <th class="px-4 py-2">Amount</th>
+                                    <th class="px-4 py-2">Method</th>
+                                    <th class="px-4 py-2">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>${paymentsHTML}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderEditMemberModal = (member) => {
+            const modalHTML = `
+            <div id="edit-member-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                <div class="card w-full max-w-lg animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+                    <div class="p-6 border-b border-border flex justify-between items-center">
+                        <h3 class="text-xl font-bold">Edit Member Details</h3>
+                        <button onclick="app.closeModal()" class="p-2 rounded-full hover:bg-accent -mr-2"><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="p-6 space-y-4 overflow-y-auto">
+                        <input type="hidden" id="edit-member-id" value="${member.MemberID}">
+                        <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" id="edit-fullname" class="input w-full p-2" value="${member.FullName}" required></div>
+                        <div><label class="block text-sm font-medium mb-1">Birthdate</label><input type="date" id="edit-birthdate" class="input w-full p-2" value="${member.Birthdate}"></div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Gender</label>
+                            <select id="edit-gender" class="input w-full p-2">
+                                <option ${member.Gender === 'Male' ? 'selected' : ''}>Male</option>
+                                <option ${member.Gender === 'Female' ? 'selected' : ''}>Female</option>
+                                <option ${member.Gender === 'Other' ? 'selected' : ''}>Other</option>
+                            </select>
+                        </div>
+                        <div><label class="block text-sm font-medium mb-1">Phone Number(s)</label><input type="text" id="edit-phones" class="input w-full p-2" value="${member.Phones}"></div>
+                        <div><label class="block text-sm font-medium mb-1">Address</label><input type="text" id="edit-address" class="input w-full p-2" value="${member.Address}"></div>
+                    </div>
+                    <div class="p-4 bg-muted/50 border-t border-border flex justify-end gap-3 mt-auto">
+                        <button onclick="app.closeModal()" class="btn-secondary px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                        <button onclick="app.saveMemberUpdate()" class="btn-primary px-4 py-2 rounded-lg font-semibold">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+            `;
+            document.getElementById('modal-placeholder').innerHTML = modalHTML;
+            lucide.createIcons();
+        };
+
+        const renderExpensesPage = () => {
+            pageContent.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <div class="card">
+                             <div class="p-6 border-b border-border flex justify-between items-center">
+                                <h2 class="text-2xl font-bold">Expenses List</h2>
+                                <button onclick="app.showAddExpenseModal()" class="btn-primary px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${can('add_expense') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('add_expense') ? '' : 'disabled'}>
+                                    <i data-lucide="plus"></i> Add Expense
+                                </button>
+                            </div>
+                            <div class="p-2">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm text-left">
+                                        <thead class="text-xs text-muted-foreground uppercase bg-muted/50">
+                                            <tr>
+                                                <th class="px-4 py-2">Date</th>
+                                                <th class="px-4 py-2">Category</th>
+                                                <th class="px-4 py-2">Amount</th>
+                                                <th class="px-4 py-2">Assigned To</th>
+                                                <th class="px-4 py-2">Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="expenses-list-body">
+                                            <!-- Expense rows will be rendered here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-4">Expenses by Category</h3>
+                            <canvas id="expenses-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            renderExpensesList();
+            renderExpensesChart();
+        };
+
+        const renderExpensesList = () => {
+            const expensesBody = document.getElementById('expenses-list-body');
+            if(!expensesBody) return;
+            const expensesHTML = data.expenses.sort((a,b) => new Date(b.Date) - new Date(a.Date)).map(expense => {
+                const member = data.members.find(m => m.MemberID === expense.MemberID);
+                return `
+                    <tr class="border-b border-border">
+                        <td class="px-4 py-3">${formatDate(expense.Date)}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-muted text-muted-foreground">${expense.Category}</span></td>
+                        <td class="px-4 py-3 font-medium">${formatCurrency(expense.Amount)}</td>
+                        <td class="px-4 py-3">${member ? member.FullName : 'N/A'}</td>
+                        <td class="px-4 py-3 text-muted-foreground">${expense.Notes}</td>
+                    </tr>
+                `;
+            }).join('');
+            expensesBody.innerHTML = expensesHTML;
+        };
+        
+        const renderExpensesChart = () => {
+            const ctx = document.getElementById('expenses-chart');
+            if(!ctx) return;
+
+            const categories = ['Maintenance', 'Repairs', 'Fuel', 'Other'];
+            const categoryData = categories.map(cat => 
+                data.expenses.filter(e => e.Category === cat).reduce((sum, e) => sum + e.Amount, 0)
+            );
+            
+            const isDarkMode = html.classList.contains('dark');
+            const chartTextColor = isDarkMode ? 'hsl(210, 40%, 98%)' : 'hsl(222.2, 84%, 4.9%)';
+            
+            if (window.expensesChart instanceof Chart) {
+                window.expensesChart.destroy();
+            }
+
+            window.expensesChart = new Chart(ctx.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        label: 'Expenses',
+                        data: categoryData,
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(75, 192, 192, 0.6)',
+                        ],
+                         borderColor: [
+                            isDarkMode ? 'rgba(96, 165, 250, 1)' : 'rgba(37, 99, 235, 1)',
+                            isDarkMode ? 'rgba(248, 113, 113, 1)' : 'rgba(220, 38, 38, 1)',
+                            isDarkMode ? 'rgba(252, 211, 77, 1)' : 'rgba(217, 119, 6, 1)',
+                            isDarkMode ? 'rgba(45, 212, 191, 1)' : 'rgba(13, 148, 136, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'top', labels: { color: chartTextColor } } }
+                }
+            });
+        };
+
+        const renderAddExpenseModal = () => {
+            const memberOptions = data.members.map(m => `<option value="${m.MemberID}">${m.FullName}</option>`).join('');
+            const modalHTML = `
+            <div id="add-expense-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                <div class="card w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
+                    <div class="p-6 border-b border-border flex justify-between items-center">
+                        <h3 class="text-xl font-bold">Add New Expense</h3>
+                        <button onclick="app.closeModal()" class="p-2 rounded-full hover:bg-accent -mr-2"><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div><label class="block text-sm font-medium mb-1">Date</label><input type="date" id="new-expense-date" class="input w-full p-2"></div>
+                        <div><label class="block text-sm font-medium mb-1">Category</label>
+                            <select id="new-expense-category" class="input w-full p-2">
+                                <option>Maintenance</option><option>Repairs</option><option>Fuel</option><option>Other</option>
+                            </select>
+                        </div>
+                        <div><label class="block text-sm font-medium mb-1">Amount</label><input type="number" id="new-expense-amount" class="input w-full p-2"></div>
+                        <div><label class="block text-sm font-medium mb-1">Assign to Member (Optional)</label>
+                            <select id="new-expense-member" class="input w-full p-2">
+                                <option value="">None</option>
+                                ${memberOptions}
+                            </select>
+                        </div>
+                        <div><label class="block text-sm font-medium mb-1">Notes</label><textarea id="new-expense-notes" rows="3" class="input w-full p-2"></textarea></div>
+                    </div>
+                    <div class="p-4 bg-muted/50 border-t border-border flex justify-end gap-3">
+                        <button onclick="app.closeModal()" class="btn-secondary px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                        <button onclick="app.saveExpense()" class="btn-primary px-4 py-2 rounded-lg font-semibold">Save Expense</button>
+                    </div>
+                </div>
+            </div>`;
+            document.getElementById('modal-placeholder').innerHTML = modalHTML;
+            document.getElementById('new-expense-date').value = new Date().toISOString().split('T')[0];
+            lucide.createIcons();
+        };
+
+        const renderBenefitsPage = () => {
+             const today = new Date();
+             const currentMonth = today.getMonth();
+             const currentYear = today.getFullYear();
+
+             const membersWithBenefits = data.members.filter(m => m.Active).map(member => {
+                const contract = data.contracts.find(c => c.MemberID === member.MemberID && c.Status === 'Active');
+                let benefits = [];
+
+                if (contract) {
+                    // Monthly Maintenance Eligibility
+                    const contractStartDay = new Date(contract.StartDate + 'T00:00:00Z').getUTCDate();
+                    let prevCycleStart, prevCycleEnd;
+
+                    if (today.getUTCDate() < contractStartDay) {
+                        prevCycleStart = new Date(Date.UTC(currentYear, currentMonth - 2, contractStartDay));
+                        prevCycleEnd = new Date(Date.UTC(currentYear, currentMonth - 1, contractStartDay - 1));
+                    } else {
+                        prevCycleStart = new Date(Date.UTC(currentYear, currentMonth - 1, contractStartDay));
+                        prevCycleEnd = new Date(Date.UTC(currentYear, currentMonth, contractStartDay - 1));
+                    }
+                    
+                    let payable = 0, paid = 0;
+                    let tempDate = new Date(prevCycleStart);
+                    while(tempDate <= prevCycleEnd) {
+                        if (tempDate.getUTCDay() !== 0) {
+                           payable += contract.Daily;
+                           const dateStr = tempDate.toISOString().split('T')[0];
+                           const payment = data.payments.find(p => p.ContractID === contract.ContractID && p.Date === dateStr);
+                           if (payment) paid += payment.Amount;
+                        }
+                        tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+                    }
+                    const isEligibleForMaintenance = payable > 0 && paid >= payable;
+                    const alreadyClaimedMaintenance = data.benefits.some(b => b.MemberID === member.MemberID && b.Type === 'Monthly Maintenance' && new Date(b.Date).getMonth() === currentMonth);
+                    
+                    benefits.push({
+                        name: 'Monthly Maintenance',
+                        value: 500,
+                        eligible: isEligibleForMaintenance,
+                        claimed: alreadyClaimedMaintenance
+                    });
+                }
+                
+                // Birthday Gift
+                const alreadyClaimedBirthday = data.benefits.some(b => b.MemberID === member.MemberID && b.Type === 'Birthday Gift' && new Date(b.Date).getFullYear() === currentYear);
+                benefits.push({
+                    name: 'Birthday Gift',
+                    value: 0, 
+                    eligible: true,
+                    claimed: alreadyClaimedBirthday
+                });
+
+                // Christmas Gift
+                const alreadyClaimedChristmas = data.benefits.some(b => b.MemberID === member.MemberID && b.Type === 'Christmas Gift' && new Date(b.Date).getFullYear() === currentYear);
+                 benefits.push({
+                    name: 'Christmas Gift',
+                    value: 0,
+                    eligible: true,
+                    claimed: alreadyClaimedChristmas
+                });
+
+                // Year-End Gift
+                const alreadyClaimedYearEnd = data.benefits.some(b => b.MemberID === member.MemberID && b.Type === 'Year-End Gift' && new Date(b.Date).getFullYear() === currentYear);
+                 benefits.push({
+                    name: 'Year-End Gift',
+                    value: 0,
+                    eligible: true,
+                    claimed: alreadyClaimedYearEnd
+                });
+
+                return { ...member, benefits };
+             });
+
+            const benefitsHTML = membersWithBenefits.map(member => {
+                const imageSrc = member.Photo ? member.Photo : `https://placehold.co/80x80/E2E8F0/475569?text=${member.FullName.charAt(0)}`;
+                return `
+                    <div class="card p-4">
+                        <div class="flex items-center gap-4 mb-4">
+                            <img src="${imageSrc}" alt="${member.FullName}" class="w-16 h-16 rounded-full object-cover">
+                            <div>
+                                <h3 class="font-bold text-lg">${member.FullName}</h3>
+                                <p class="text-sm text-muted-foreground">${member.MemberID}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            ${member.benefits.map(benefit => {
+                                const canClaim = benefit.eligible && !benefit.claimed && can('grant_benefit');
+                                let button;
+                                if (benefit.claimed) {
+                                    button = `<button class="btn-secondary text-xs px-3 py-1 rounded-md opacity-50 cursor-not-allowed" disabled>Claimed</button>`;
+                                } else if (canClaim) {
+                                    button = `<button onclick="app.showClaimPasswordModal('${member.MemberID}', '${benefit.name}', ${benefit.value})" class="btn-primary text-xs px-3 py-1 rounded-md">Claim</button>`;
+                                } else {
+                                     button = `<button class="btn-secondary text-xs px-3 py-1 rounded-md opacity-50 cursor-not-allowed" disabled>Not Eligible</button>`;
+                                }
+                                return `
+                                <div class="flex justify-between items-center bg-muted/50 p-2 rounded-lg">
+                                    <div>
+                                        <p class="font-semibold text-sm">${benefit.name}</p>
+                                        ${benefit.name === 'Monthly Maintenance' ? `<p class="text-xs text-muted-foreground">${formatCurrency(benefit.value)} credit</p>` : ''}
+                                    </div>
+                                    ${button}
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+             pageContent.innerHTML = `
+                <h2 class="text-3xl font-bold mb-6">Member Benefits</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${benefitsHTML}
+                </div>`;
+        };
+
+        const renderCalendar = (year, month, member, contract) => {
+            const container = document.getElementById('payment-calendar-container');
+            if (!container || !contract) {
+                if(container) container.innerHTML = '<div class="flex justify-between items-center mb-4"><h4 class="text-lg font-bold">Payment Calendar</h4></div><p class="text-muted-foreground text-sm">No active contract to display calendar.</p>';
+                return;
+            }
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const contractStart = new Date(contract.StartDate + 'T00:00:00Z');
+            const contractEnd = new Date(contract.EndDate + 'T00:00:00Z');
+
+            const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const startingDay = firstDayOfMonth.getUTCDay();
+
+            const memberPayments = data.payments.filter(p => p.MemberID === member.MemberID);
+
+            let calendarHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="app.navigateCalendar(-1)" class="p-2 rounded-full hover:bg-accent"><i data-lucide="chevron-left"></i></button>
+                    <h4 class="text-lg font-bold">${monthNames[month]} ${year}</h4>
+                    <button onclick="app.navigateCalendar(1)" class="p-2 rounded-full hover:bg-accent"><i data-lucide="chevron-right"></i></button>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground">
+                    ${daysOfWeek.map(day => `<div>${day}</div>`).join('')}
+                </div>
+                <div class="grid grid-cols-7 gap-1 mt-2">
+            `;
+
+            for (let i = 0; i < startingDay; i++) { calendarHTML += `<div></div>`; }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const currentDate = new Date(Date.UTC(year, month, i));
+                let dayClasses = 'h-14 w-full flex flex-col items-center justify-center rounded-lg text-sm';
+                let dayTextContent = '';
+
+                const paymentOnDate = memberPayments.find(p => {
+                    const pDate = new Date(p.Date + 'T00:00:00Z');
+                    return pDate.getTime() === currentDate.getTime();
+                });
+
+                if (currentDate >= contractStart && currentDate <= contractEnd) {
+                    dayClasses += ' bg-muted/50';
+
+                    if (currentDate.getUTCDay() === 0) { // Sunday
+                        dayTextContent = '<span class="status-badge status-rest">REST</span>';
+                    } else if (paymentOnDate) {
+                        if (paymentOnDate.Amount >= contract.Daily) {
+                            dayTextContent = '<span class="status-badge status-paid">PAID</span>';
+                        } else {
+                            dayTextContent = '<span class="status-badge status-partial">PARTIAL</span>';
+                        }
+                    } else {
+                        dayTextContent = '<span class="status-badge status-unpaid">UNPAID</span>';
+                    }
+                } else {
+                     dayClasses += ' text-slate-400 dark:text-gray-600';
+                }
+                
+                if (currentDate.toDateString() === new Date().toDateString()) {
+                     dayClasses += ' ring-2 ring-blue-500';
+                }
+
+                calendarHTML += `<div class="${dayClasses}"><span>${i}</span>${dayTextContent}</div>`;
+            }
+
+            calendarHTML += `</div>`;
+            container.innerHTML = calendarHTML;
+        };
+        
+        const renderPaymentModal = (member, contract, defaultDate) => {
+            const dateValue = defaultDate || new Date().toISOString().split('T')[0];
+            const modalHTML = `
+            <div id="payment-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                <div class="card w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
+                    <div class="p-6 border-b border-border flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-bold">Record Payment for ${member.FullName}</h3>
+                            <p class="text-sm text-muted-foreground">Contract: ${contract.ContractID}</p>
+                        </div>
+                        <button onclick="app.closeModal()" class="p-2 rounded-full hover:bg-accent -mr-2"><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label for="payment-amount" class="block text-sm font-medium mb-1">Amount</label>
+                            <input type="number" id="payment-amount" value="${contract.Daily}" class="input w-full p-2">
+                        </div>
+                        <div>
+                            <label for="payment-date" class="block text-sm font-medium mb-1">Date</label>
+                            <input type="date" id="payment-date" value="${dateValue}" class="input w-full p-2">
+                        </div>
+                        <div>
+                            <label for="payment-method" class="block text-sm font-medium mb-1">Method</label>
+                            <select id="payment-method" class="input w-full p-2">
+                                <option>Cash</option>
+                                <option>GCash</option>
+                                <option>Bank</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="payment-notes" class="block text-sm font-medium mb-1">Notes</label>
+                            <textarea id="payment-notes" rows="2" class="input w-full p-2" placeholder="e.g., Daily payment"></textarea>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-muted/50 border-t border-border flex justify-end gap-3">
+                        <button onclick="app.closeModal()" class="btn-secondary px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                        <button onclick="app.savePayment('${member.MemberID}', '${contract.ContractID}')" class="btn-primary px-4 py-2 rounded-lg font-semibold">Save Payment</button>
+                    </div>
+                </div>
+            </div>
+            `;
+            document.getElementById('modal-placeholder').innerHTML = modalHTML;
+            lucide.createIcons();
+        };
+        
+        const renderNewMemberModal = () => {
+             state.newMemberPhotos = { member: null, motorcycle: null }; // Reset photos
+            const modalHTML = `
+            <div id="add-member-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                <div class="card w-full max-w-4xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+                    <div class="p-6 border-b border-border flex justify-between items-center">
+                        <h3 class="text-xl font-bold">Register New Member</h3>
+                        <button onclick="app.closeModal()" class="p-2 rounded-full hover:bg-accent -mr-2"><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="p-6 space-y-6 overflow-y-auto">
+                        <!-- Member Details -->
+                        <div class="p-4 border border-border rounded-lg">
+                            <h4 class="font-bold mb-3 text-lg">Member Information</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" id="new-fullname" class="input w-full p-2" required></div>
+                                <div><label class="block text-sm font-medium mb-1">Birthdate</label><input type="date" id="new-birthdate" class="input w-full p-2"></div>
+                                <div><label class="block text-sm font-medium mb-1">Gender</label><select id="new-gender" class="input w-full p-2"><option>Male</option><option>Female</option><option>Other</option></select></div>
+                                <div><label class="block text-sm font-medium mb-1">Phone Number(s)</label><input type="text" id="new-phones" class="input w-full p-2" placeholder="e.g., 0917..., 0928..."></div>
+                                <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Address</label><input type="text" id="new-address" class="input w-full p-2"></div>
+                                <div><label class="block text-sm font-medium mb-1">Member Photo</label><input type="file" id="new-member-photo" class="input w-full p-1 text-sm" accept="image/*"></div>
+                            </div>
+                        </div>
+                        <!-- Vehicle Details -->
+                        <div class="p-4 border border-border rounded-lg">
+                           <h4 class="font-bold mb-3 text-lg">Vehicle Information</h4>
+                           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-medium mb-1">Make & Type</label><input type="text" id="new-maketype" class="input w-full p-2"></div>
+                                <div><label class="block text-sm font-medium mb-1">Plate No.</label><input type="text" id="new-plateno" class="input w-full p-2"></div>
+                                <div><label class="block text-sm font-medium mb-1">Engine No.</label><input type="text" id="new-engineno" class="input w-full p-2"></div>
+                                <div><label class="block text-sm font-medium mb-1">Chassis No.</label><input type="text" id="new-chassisno" class="input w-full p-2"></div>
+                                <div><label class="block text-sm font-medium mb-1">Color</label><input type="text" id="new-color" class="input w-full p-2"></div>
+                                <div><label class="block text-sm font-medium mb-1">Year Model</label><input type="number" id="new-yearmodel" class="input w-full p-2" value="2025"></div>
+                                <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Motorcycle Photo</label><input type="file" id="new-motorcycle-photo" class="input w-full p-1 text-sm" accept="image/*"></div>
+                           </div>
+                        </div>
+                        <!-- Contract Details -->
+                        <div class="p-4 border border-border rounded-lg">
+                           <h4 class="font-bold mb-3 text-lg">Contract Terms</h4>
+                           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-medium mb-1">Start Date</label><input type="date" id="new-startdate" class="input w-full p-2" required></div>
+                                <div><label class="block text-sm font-medium mb-1">Term (Months)</label><input type="number" id="new-term" class="input w-full p-2" value="12" required></div>
+                                <div><label class="block text-sm font-medium mb-1">Daily Payment</label><input type="number" id="new-daily" class="input w-full p-2" required></div>
+                                <div><label class="block text-sm font-medium mb-1">Calculated Total Amount</label><input type="text" id="new-totalamount" class="input w-full p-2 bg-muted/50" disabled></div>
+                                <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Calculated End Date</label><input type="text" id="new-enddate" class="input w-full p-2 bg-muted/50" disabled></div>
+                           </div>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-muted/50 border-t border-border flex justify-end gap-3 mt-auto">
+                        <button onclick="app.closeModal()" class="btn-secondary px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                        <button onclick="app.saveNewMember()" class="btn-primary px-4 py-2 rounded-lg font-semibold">Save New Member</button>
+                    </div>
+                </div>
+            </div>
+            `;
+            document.getElementById('modal-placeholder').innerHTML = modalHTML;
+            
+            const startDateInput = document.getElementById('new-startdate');
+            const termInput = document.getElementById('new-term');
+            const dailyInput = document.getElementById('new-daily');
+            const totalAmountInput = document.getElementById('new-totalamount');
+            const endDateInput = document.getElementById('new-enddate');
+            const memberPhotoInput = document.getElementById('new-member-photo');
+            const motorcyclePhotoInput = document.getElementById('new-motorcycle-photo');
+
+            const calculateTotalAndEndDate = () => {
+                const startDateValue = startDateInput.value;
+                const term = parseInt(termInput.value, 10);
+                const dailyPayment = parseFloat(dailyInput.value) || 0;
+
+                if (startDateValue && term > 0) {
+                    const startDate = new Date(startDateValue + 'T00:00:00Z');
+                    
+                    // End date calculation
+                    const endDate = new Date(startDate);
+                    endDate.setUTCMonth(endDate.getUTCMonth() + term);
+                    endDateInput.value = endDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+                    // Total amount calculation (excluding Sundays)
+                    if (dailyPayment > 0) {
+                        let payableDays = 0;
+                        let currentDate = new Date(startDate);
+                        
+                        while (currentDate < endDate) {
+                            // Sunday is 0 for getUTCDay()
+                            if (currentDate.getUTCDay() !== 0) {
+                                payableDays++;
+                            }
+                            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                        }
+                        
+                        const totalAmount = payableDays * dailyPayment;
+                        totalAmountInput.value = formatCurrency(totalAmount);
+                    } else {
+                        totalAmountInput.value = '';
+                    }
+
+                } else {
+                    endDateInput.value = '';
+                    totalAmountInput.value = '';
+                }
+            };
+            
+            startDateInput.value = new Date().toISOString().split('T')[0];
+            calculateTotalAndEndDate();
+
+            startDateInput.addEventListener('change', calculateTotalAndEndDate);
+            termInput.addEventListener('input', calculateTotalAndEndDate);
+            dailyInput.addEventListener('input', calculateTotalAndEndDate);
+            
+            const handlePhotoUpload = (event, type) => {
+                 const file = event.target.files[0];
+                 if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        state.newMemberPhotos[type] = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                 }
+            };
+
+            memberPhotoInput.addEventListener('change', (e) => handlePhotoUpload(e, 'member'));
+            motorcyclePhotoInput.addEventListener('change', (e) => handlePhotoUpload(e, 'motorcycle'));
+
+            lucide.createIcons();
+        };
+
+        const renderSummaryPage = () => {
+            const selectedYear = state.summaryDate.getFullYear();
+            const selectedMonth = parseInt(document.getElementById('summary-month-select')?.value ?? state.summaryDate.getMonth());
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const yearOptions = [new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2];
+
+            const filteredPayments = data.payments.filter(p => {
+                const paymentDate = new Date(p.Date + 'T00:00:00Z');
+                const yearMatch = paymentDate.getFullYear() === selectedYear;
+                const monthMatch = selectedMonth === -1 || paymentDate.getMonth() === selectedMonth;
+                return yearMatch && monthMatch;
+            });
+
+            const filteredExpenses = data.expenses.filter(e => {
+                const expenseDate = new Date(e.Date + 'T00:00:00Z');
+                const yearMatch = expenseDate.getFullYear() === selectedYear;
+                const monthMatch = selectedMonth === -1 || expenseDate.getMonth() === selectedMonth;
+                return yearMatch && monthMatch;
+            });
+
+            const totalIncome = filteredPayments.reduce((sum, p) => sum + p.Amount, 0);
+            const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.Amount, 0);
+            const netIncome = totalIncome - totalExpenses;
+            
+            pageContent.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">Financial Summary</h2>
+                        <div class="flex items-center gap-2">
+                            <select id="summary-month-select" class="input p-2">
+                                <option value="-1">All Months</option>
+                                ${monthNames.map((m, i) => `<option value="${i}" ${i === selectedMonth ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                            <select id="summary-year-select" class="input p-2">
+                                ${yearOptions.map(y => `<option value="${y}" ${y === selectedYear ? 'selected' : ''}>${y}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                         <div class="card p-6">
+                            <h3 class="text-sm font-medium text-muted-foreground">Total Income</h3>
+                            <p class="text-3xl font-bold text-green-600">${formatCurrency(totalIncome)}</p>
+                         </div>
+                         <div class="card p-6">
+                            <h3 class="text-sm font-medium text-muted-foreground">Total Expenses</h3>
+                            <p class="text-3xl font-bold text-red-600">${formatCurrency(totalExpenses)}</p>
+                         </div>
+                         <div class="card p-6">
+                            <h3 class="text-sm font-medium text-muted-foreground">Net Income</h3>
+                            <p class="text-3xl font-bold">${formatCurrency(netIncome)}</p>
+                         </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-4">Financial Overview</h3>
+                            <canvas id="summary-chart"></canvas>
+                        </div>
+                         <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-4">Expenses Breakdown</h3>
+                            <div class="max-w-md mx-auto">
+                                <canvas id="summary-expenses-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('summary-month-select').addEventListener('change', (e) => {
+                state.summaryDate.setMonth(parseInt(e.target.value));
+                renderSummaryPage();
+            });
+            document.getElementById('summary-year-select').addEventListener('change', (e) => {
+                state.summaryDate.setFullYear(parseInt(e.target.value));
+                renderSummaryPage();
+            });
+            
+            const isDarkMode = html.classList.contains('dark');
+            const chartTextColor = isDarkMode ? 'hsl(210, 40%, 98%)' : 'hsl(222.2, 84%, 4.9%)';
+            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+            // Main Summary Chart (Bar Chart)
+            const summaryCtx = document.getElementById('summary-chart').getContext('2d');
+            if (window.summaryChart instanceof Chart) window.summaryChart.destroy();
+            window.summaryChart = new Chart(summaryCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Income', 'Expenses', 'Net Income'],
+                    datasets: [{
+                        label: 'Amount',
+                        data: [totalIncome, totalExpenses, netIncome],
+                        backgroundColor: ['rgba(34, 197, 94, 0.6)', 'rgba(239, 68, 68, 0.6)', 'rgba(54, 162, 235, 0.6)'],
+                        borderColor: [isDarkMode ? 'rgba(74, 222, 128, 1)' : 'rgba(22, 163, 74, 1)', isDarkMode ? 'rgba(251, 113, 133, 1)' : 'rgba(220, 38, 38, 1)', isDarkMode ? 'rgba(96, 165, 250, 1)' : 'rgba(37, 99, 235, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            ticks: { color: chartTextColor },
+                            grid: { color: gridColor }
+                        },
+                        x: {
+                            ticks: { color: chartTextColor },
+                             grid: { color: 'transparent' }
+                        }
+                    }
+                }
+            });
+
+            // Expenses Breakdown Chart
+            const expensesCtx = document.getElementById('summary-expenses-chart').getContext('2d');
+            const categories = ['Maintenance', 'Repairs', 'Fuel', 'Other'];
+            const categoryData = categories.map(cat => 
+                filteredExpenses.filter(e => e.Category === cat).reduce((sum, e) => sum + e.Amount, 0)
+            );
+
+            if (window.summaryExpensesChart instanceof Chart) window.summaryExpensesChart.destroy();
+            window.summaryExpensesChart = new Chart(expensesCtx, {
+                type: 'pie',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        label: 'Expenses',
+                        data: categoryData,
+                        backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(255, 99, 132, 0.6)', 'rgba(255, 206, 86, 0.6)', 'rgba(75, 192, 192, 0.6)'],
+                        borderColor: [isDarkMode ? 'rgba(96, 165, 250, 1)' : 'rgba(37, 99, 235, 1)', isDarkMode ? 'rgba(248, 113, 113, 1)' : 'rgba(220, 38, 38, 1)', isDarkMode ? 'rgba(252, 211, 77, 1)' : 'rgba(217, 119, 6, 1)', isDarkMode ? 'rgba(45, 212, 191, 1)' : 'rgba(13, 148, 136, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'top', labels: { color: chartTextColor } } } }
+            });
+        };
+
+        const renderSettingsPage = () => {
+            pageContent.innerHTML = `
+                <div class="max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold mb-6">Settings</h2>
+                     <div class="card p-6">
+                         <h3 class="text-lg font-bold mb-2">Security</h3>
+                         <div class="space-y-4">
+                            <div>
+                                <label for="old-password" class="block text-sm font-medium mb-1">Old Password</label>
+                                <input type="password" id="old-password" class="input w-full p-2">
+                            </div>
+                             <div>
+                                <label for="new-password" class="block text-sm font-medium mb-1">New Password</label>
+                                <input type="password" id="new-password" class="input w-full p-2">
+                            </div>
+                             <div>
+                                <label for="confirm-password" class="block text-sm font-medium mb-1">Confirm New Password</label>
+                                <input type="password" id="confirm-password" class="input w-full p-2">
+                            </div>
+                             <div class="flex justify-end">
+                                 <button onclick="app.handleChangePassword()" class="btn-primary px-4 py-2 rounded-lg font-semibold">Change Password</button>
+                             </div>
+                         </div>
+                    </div>
+                    <div class="card p-6 mt-6">
+                        <h3 class="text-lg font-bold mb-4">Data Management</h3>
+                        <p class="text-sm text-muted-foreground mb-4">Export all your data into a single file for backup, or import data from a backup file.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button onclick="app.exportAllData()" class="btn-secondary p-3 rounded-lg font-semibold flex items-center justify-center gap-2 ${can('export') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('export') ? '' : 'disabled'}>
+                               <i data-lucide="download" class="h-5 w-5"></i> Export All Data
+                            </button>
+                             <button onclick="document.getElementById('import-file-input').click()" class="btn-secondary p-3 rounded-lg font-semibold flex items-center justify-center gap-2 ${can('import') ? '' : 'opacity-50 cursor-not-allowed'}" ${can('import') ? '' : 'disabled'}>
+                               <i data-lucide="upload" class="h-5 w-5"></i> Import Data
+                            </button>
+                            <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="app.importData(event)">
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderPlaceholderPage = (pageName) => {
+            pageContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <i data-lucide="construct" class="w-16 h-16 mb-4"></i>
+                    <h2 class="text-2xl font-bold">${pageName.charAt(0).toUpperCase() + pageName.slice(1)} Page</h2>
+                    <p>This section is under construction.</p>
+                </div>
+            `;
+        };
+        
+        // --- ACTIONS & EVENTS ---
+        searchBox.addEventListener('input', (e) => {
+            state.searchTerm = e.target.value;
+            setTimeout(() => {
+                if ((state.currentPage === 'members' && !state.selectedMemberId) || state.currentPage === 'benefits') {
+                    renderCurrentPage();
+                    lucide.createIcons();
+                }
+            }, 300);
+        });
+        
+        addMemberBtn.addEventListener('click', () => {
+             if (!can('add_member')) return;
+             renderNewMemberModal();
+        });
+
+
+        // --- MOBILE MENU ---
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+            document.getElementById('mobile-menu').classList.remove('hidden');
+        });
+        document.getElementById('close-mobile-menu-btn').addEventListener('click', () => {
+            document.getElementById('mobile-menu').classList.add('hidden');
+        });
+        document.getElementById('mobile-menu').addEventListener('click', (e) => {
+            if (e.target.id === 'mobile-menu') {
+                document.getElementById('mobile-menu').classList.add('hidden');
+            }
+        });
+
+
+        // --- GLOBAL APP OBJECT ---
+        window.app = {
+            selectMember: (memberId) => {
+                state.selectedMemberId = memberId;
+                state.calendarDate = new Date(); // Reset calendar to current month on member selection
+                renderCurrentPage();
+            },
+            unselectMember: () => {
+                state.selectedMemberId = null;
+                renderCurrentPage();
+            },
+            exportCSV: (tableName) => {
+                if (!can('export')) return;
+                const tableData = data[tableName];
+                if (!tableData || tableData.length === 0) { return; }
+                const headers = Object.keys(tableData[0]);
+                let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+                tableData.forEach(row => {
+                    const values = headers.map(header => {
+                        const val = row[header];
+                        if (typeof val === 'string' && val.includes(',')) {
+                            return `"${val}"`;
+                        }
+                        return val;
+                    });
+                    csvContent += values.join(",") + "\n";
+                });
+                const link = document.createElement("a");
+                link.setAttribute("href", encodeURI(csvContent));
+                link.setAttribute("download", `${tableName}.csv`);
+                link.click();
+            },
+            showPaymentModal: (memberId, contractId, defaultDate) => {
+                if (!can('add_payment') || !contractId) return;
+                const member = data.members.find(m => m.MemberID === memberId);
+                const contract = data.contracts.find(c => c.ContractID === contractId);
+                renderPaymentModal(member, contract, defaultDate);
+            },
+            showEditMemberModal: (memberId) => {
+                if (!can('edit_member')) return;
+                const member = data.members.find(m => m.MemberID === memberId);
+                if (member) {
+                    renderEditMemberModal(member);
+                }
+            },
+            saveMemberUpdate: () => {
+                const memberId = document.getElementById('edit-member-id').value;
+                updateAndSaveData(() => {
+                    const member = data.members.find(m => m.MemberID === memberId);
+                    if (member) {
+                        member.FullName = document.getElementById('edit-fullname').value;
+                        member.Birthdate = document.getElementById('edit-birthdate').value;
+                        member.Gender = document.getElementById('edit-gender').value;
+                        member.Phones = document.getElementById('edit-phones').value;
+                        member.Address = document.getElementById('edit-address').value;
+                    }
+                });
+                app.closeModal();
+                app.selectMember(memberId);
+            },
+            closeModal: () => {
+                const modal = document.querySelector('#modal-placeholder > div');
+                if (modal) modal.remove();
+            },
+            savePayment: (memberId, contractId) => {
+                updateAndSaveData(() => {
+                    const amountPaid = parseFloat(document.getElementById('payment-amount').value);
+                    const initialDateStr = document.getElementById('payment-date').value;
+                    const method = document.getElementById('payment-method').value;
+                    const notes = document.getElementById('payment-notes').value;
+
+                    if (!amountPaid || !initialDateStr || amountPaid <= 0) {
+                        alert('Please enter a valid amount and date.');
+                        return;
+                    }
+
+                    const contract = data.contracts.find(c => c.ContractID === contractId);
+                    if (!contract) {
+                        alert('Contract not found.');
+                        return;
+                    }
+
+                    contract.Balance -= amountPaid;
+                    if (contract.Balance <= 0) {
+                        contract.Status = "Closed";
+                    }
+
+                    let remainingAmountToApply = amountPaid;
+                    let currentDate = new Date(initialDateStr + 'T00:00:00Z');
+
+                    while (remainingAmountToApply > 0) {
+                        if (currentDate.getUTCDay() === 0) {
+                            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                            continue;
+                        }
+                        
+                        const contractEndDate = new Date(contract.EndDate + 'T00:00:00Z');
+                        if(currentDate > contractEndDate) break;
+
+                        const currentDateStr = currentDate.toISOString().split('T')[0];
+                        let paymentOnDate = data.payments.find(p => p.ContractID === contractId && p.Date === currentDateStr);
+
+                        const dailyDue = contract.Daily;
+                        const alreadyPaid = paymentOnDate ? paymentOnDate.Amount : 0;
+                        const amountNeededForToday = dailyDue - alreadyPaid;
+
+                        if (amountNeededForToday <= 0) {
+                            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                            continue;
+                        }
+
+                        const amountToApplyToday = Math.min(remainingAmountToApply, amountNeededForToday);
+
+                        if (paymentOnDate) {
+                            paymentOnDate.Amount += amountToApplyToday;
+                            paymentOnDate.Notes = "Updated with overpayment"; 
+                        } else {
+                            const newPayment = {
+                                PaymentID: generateNewID('P', data.payments, 'PaymentID'),
+                                MemberID: memberId,
+                                ContractID: contractId,
+                                Date: currentDateStr,
+                                Amount: amountToApplyToday,
+                                Method: method,
+                                Notes: initialDateStr === currentDateStr ? notes : "Overpayment allocation",
+                            };
+                            data.payments.push(newPayment);
+                        }
+
+                        remainingAmountToApply -= amountToApplyToday;
+                        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                    }
+                });
+                app.closeAndRefresh(memberId);
+            },
+            saveNewMember: () => {
+                 updateAndSaveData(() => {
+                    const newMember = {
+                        MemberID: generateNewID('M', data.members, 'MemberID'),
+                        FullName: document.getElementById('new-fullname').value,
+                        Birthdate: document.getElementById('new-birthdate').value,
+                        Gender: document.getElementById('new-gender').value,
+                        Phones: document.getElementById('new-phones').value,
+                        Address: document.getElementById('new-address').value,
+                        Photo: state.newMemberPhotos.member || "",
+                        CreatedAt: new Date().toISOString(),
+                        Active: true
+                    };
+                    
+                    if (!newMember.FullName) { alert('Full Name is required.'); return; }
+
+                    const newVehicle = {
+                        VehicleID: generateNewID('V', data.vehicles, 'VehicleID'),
+                        MemberID: newMember.MemberID,
+                        MakeType: document.getElementById('new-maketype').value,
+                        PlateNo: document.getElementById('new-plateno').value,
+                        EngineNo: document.getElementById('new-engineno').value,
+                        ChassisNo: document.getElementById('new-chassisno').value,
+                        Color: document.getElementById('new-color').value,
+                        YearModel: document.getElementById('new-yearmodel').value,
+                        MotorcyclePhoto: state.newMemberPhotos.motorcycle || ""
+                    };
+                    
+                    const totalAmountString = document.getElementById('new-totalamount').value;
+                    const totalAmount = parseFloat(totalAmountString.replace(/[^0-9.-]+/g,""));
+                    
+                    const startDateValue = document.getElementById('new-startdate').value;
+                    const term = parseInt(document.getElementById('new-term').value, 10);
+                    
+                    const startDate = new Date(startDateValue + 'T00:00:00Z');
+                    const endDate = new Date(startDate);
+                    endDate.setUTCMonth(endDate.getUTCMonth() + term);
+
+                    const newContract = {
+                        ContractID: generateNewID('C', data.contracts, 'ContractID'),
+                        MemberID: newMember.MemberID,
+                        Status: 'Active',
+                        StartDate: startDateValue,
+                        EndDate: endDate.toISOString().split('T')[0],
+                        TotalAmount: totalAmount,
+                        Balance: totalAmount,
+                        Daily: parseFloat(document.getElementById('new-daily').value),
+                        Notes: "",
+                        CreatedAt: new Date().toISOString()
+                    };
+
+                    if (!newContract.Daily || !newContract.StartDate || !term) {
+                        alert('All contract term fields are required.');
+                        return;
+                    }
+
+                    data.members.push(newMember);
+                    data.vehicles.push(newVehicle);
+                    data.contracts.push(newContract);
+                });
+
+                app.closeModal();
+                handleNav('members');
+            },
+            deleteMember: (memberId) => {
+                if (!confirm('Are you sure you want to delete this member? This will archive their record.')) {
+                    return;
+                }
+                updateAndSaveData(() => {
+                    const member = data.members.find(m => m.MemberID === memberId);
+                    if (member) {
+                        member.Active = false;
+                    }
+                    const contracts = data.contracts.filter(c => c.MemberID === memberId);
+                    contracts.forEach(c => c.Status = 'Closed');
+                });
+
+                app.unselectMember();
+            },
+            navigateCalendar: (monthOffset) => {
+                state.calendarDate.setMonth(state.calendarDate.getMonth() + monthOffset);
+                renderMemberDetail(state.selectedMemberId);
+                lucide.createIcons();
+            },
+            closeAndRefresh: (memberId) => {
+                app.closeModal();
+                renderMemberDetail(memberId);
+                lucide.createIcons();
+            },
+            handleContractFileUpload: (files, contractId) => {
+                 if (!files.length || !contractId) return;
+                
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                       updateAndSaveData(() => {
+                           const newFile = {
+                                ContractFileID: generateNewID('CF', data.contractFiles, 'ContractFileID'),
+                                ContractID: contractId,
+                                FileName: file.name,
+                                File: e.target.result, 
+                                FileURL: "",
+                                ContentType: file.type,
+                                UploadedAt: new Date().toISOString()
+                            };
+                            data.contractFiles.push(newFile);
+                       }).then(() => {
+                            renderMemberDetail(state.selectedMemberId);
+                            lucide.createIcons();
+                       });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            },
+            exportMonthlyPDF: (memberId) => {
+                if (!can('export')) return;
+
+                const member = data.members.find(m => m.MemberID === memberId);
+                const contract = data.contracts.find(c => c.MemberID === memberId && c.Status === 'Active') || data.contracts.filter(c => c.MemberID === memberId).sort((a,b) => new Date(b.StartDate) - new Date(a.StartDate))[0];
+                if (!member || !contract) {
+                    alert('No contract found for this member to generate a report.');
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // --- 1. Calculate Cycle Dates ---
+                const contractStartDay = new Date(contract.StartDate + 'T00:00:00Z').getUTCDate();
+                const today = new Date();
+                let cycleStart, cycleEnd;
+
+                if (today.getUTCDate() < contractStartDay) {
+                    cycleStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, contractStartDay));
+                    cycleEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), contractStartDay - 1));
+                } else {
+                    cycleStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), contractStartDay));
+                    cycleEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, contractStartDay - 1));
+                }
+                
+                const contractStartDate = new Date(contract.StartDate + 'T00:00:00Z');
+                const contractEndDate = new Date(contract.EndDate + 'T00:00:00Z');
+                if (cycleStart < contractStartDate) cycleStart = contractStartDate;
+                if (cycleEnd > contractEndDate) cycleEnd = contractEndDate;
+
+
+                // --- 2. Gather Data for the Cycle ---
+                let cycleData = [];
+                let totalPayable = 0;
+                let totalPaid = 0;
+                
+                let currentPDFDate = new Date(cycleStart);
+
+                while (currentPDFDate <= cycleEnd) {
+                    if (currentPDFDate.getUTCDay() !== 0) { // Not Sunday
+                        totalPayable += contract.Daily;
+                        const dateStr = currentPDFDate.toISOString().split('T')[0];
+                        const payment = data.payments.find(p => p.ContractID === contract.ContractID && p.Date === dateStr);
+                        const amountPaid = payment ? payment.Amount : 0;
+                        totalPaid += amountPaid;
+
+                        let status = 'UNPAID';
+                        if (amountPaid > 0) {
+                            status = amountPaid >= contract.Daily ? 'PAID' : 'PARTIAL';
+                        }
+                        
+                        cycleData.push({
+                            date: dateStr,
+                            status: status,
+                            paid: amountPaid
+                        });
+                    }
+                    currentPDFDate.setUTCDate(currentPDFDate.getUTCDate() + 1);
+                }
+                const unpaidAmount = totalPayable - totalPaid;
+
+                // --- 3. Build the PDF Document ---
+                doc.setFontSize(18);
+                doc.text('Monthly Payment Summary', 14, 22);
+
+                doc.setFontSize(11);
+                doc.setTextColor(100);
+                doc.text(`Member: ${member.FullName} (${member.MemberID})`, 14, 32);
+                doc.text(`Cycle Period: ${cycleStart.toLocaleDateString('en-US')} to ${cycleEnd.toLocaleDateString('en-US')}`, 14, 38);
+                
+                // Summary Box
+                doc.setDrawColor(200);
+                doc.rect(14, 45, 182, 25);
+                doc.setFontSize(10);
+                doc.setTextColor(0);
+                doc.text(`Total Payable: ${formatCurrencyForPDF(totalPayable)}`, 20, 53);
+                doc.setTextColor(34, 139, 34); // ForestGreen
+                doc.text(`Total Paid: ${formatCurrencyForPDF(totalPaid)}`, 80, 53);
+                doc.setTextColor(220, 20, 60); // Crimson
+                doc.text(`Unpaid Balance (for cycle): ${formatCurrencyForPDF(unpaidAmount)}`, 130, 53);
+                
+                // Table Header
+                let yPos = 80;
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0);
+                doc.text('Date', 14, yPos);
+                doc.text('Status', 80, yPos);
+                doc.text('Amount Paid', 150, yPos);
+                doc.setLineWidth(0.5);
+                doc.line(14, yPos + 2, 196, yPos + 2);
+                
+                // Table Rows
+                yPos += 8;
+                doc.setFont('helvetica', 'normal');
+                cycleData.forEach(row => {
+                    if (yPos > 275) { // Page break with more margin
+                        doc.addPage();
+                        yPos = 20;
+                         doc.setFontSize(10);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(0);
+                        doc.text('Date', 14, yPos);
+                        doc.text('Status', 80, yPos);
+                        doc.text('Amount Paid', 150, yPos);
+                        doc.setLineWidth(0.5);
+                        doc.line(14, yPos + 2, 196, yPos + 2);
+                        yPos += 8;
+                        doc.setFont('helvetica', 'normal');
+                    }
+                    doc.text(new Date(row.date + 'T00:00:00Z').toLocaleDateString('en-US'), 14, yPos);
+                    doc.text(row.status, 80, yPos);
+                    doc.text(formatCurrencyForPDF(row.paid), 150, yPos);
+                    yPos += 7;
+                });
+
+                // --- 4. Save the PDF ---
+                doc.save(`Payment_Summary_${member.FullName.replace(' ', '_')}_${cycleStart.toISOString().split('T')[0]}.pdf`);
+            },
+            exportForMember: (memberId) => {
+                const member = data.members.find(m => m.MemberID === memberId);
+                const contract = data.contracts.find(c => c.MemberID === memberId && c.Status === 'Active') || data.contracts.filter(c => c.MemberID === memberId).sort((a,b) => new Date(b.StartDate) - new Date(a.StartDate))[0];
+                if (!member || !contract) {
+                    alert('No contract found for this member to generate a report.');
+                    return;
+                }
+
+                const payments = data.payments.filter(p => p.ContractID === contract.ContractID);
+                const memberData = { member, contract, payments };
+
+                const reportHTML = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Payment Report for ${member.FullName}</title>
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <script src="https://unpkg.com/lucide@latest"><\/script>
+                    <style>
+                        body { font-family: 'Inter', sans-serif; }
+                        .status-badge { font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 9999px; margin-top: 2px; }
+                        .status-paid { background-color: #dcfce7; color: #166534; }
+                        .status-unpaid { background-color: #fee2e2; color: #991b1b; }
+                        .status-partial { background-color: #fef9c3; color: #854d0e; }
+                        .status-rest { background-color: #e2e8f0; color: #475569; }
+                    <\/style>
+                     <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+                </head>
+                <body class="bg-gray-100 p-4 sm:p-8">
+                    <div class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-lg">
+                        <div class="flex items-center justify-between mb-6">
+                             <div>
+                                <h1 class="text-2xl sm:text-3xl font-bold">Payment Report</h1>
+                                <p class="text-lg font-semibold text-gray-700">${member.FullName}</p>
+                             </div>
+                              <div>
+                                <p class="text-sm text-gray-500 text-right">As of</p>
+                                <p class="font-semibold text-right">${new Date().toLocaleDateString()}</p>
+                             </div>
+                        </div>
+                        
+                        <div class="my-6 border-t border-gray-200"></div>
+
+                        <div id="cycle-summary"></div>
+                        
+                        <h2 class="text-xl font-bold mt-8 mb-4">Payment Calendar</h2>
+                        <div id="calendar-wrapper"></div>
+                        
+                        <h2 class="text-xl font-bold mt-8 mb-4">Payment History</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="text-left text-gray-500 uppercase bg-gray-50">
+                                    <tr><th class="px-4 py-2">Date</th><th class="px-4 py-2">Amount</th><th class="px-4 py-2">Method</th><th class="px-4 py-2">Notes</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${payments.sort((a,b) => new Date(b.Date) - new Date(a.Date)).map(p => `
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2">${formatDate(p.Date)}</td>
+                                        <td class="px-4 py-2 font-medium">${formatCurrency(p.Amount)}</td>
+                                        <td class="px-4 py-2">${p.Method}</td>
+                                        <td class="px-4 py-2 text-gray-500">${p.Notes}</td>
+                                    </tr>`).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <script>
+                        const memberData = ${JSON.stringify(memberData)};
+                        const { member, contract, payments } = memberData;
+                        const formatCurrency = (amount) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+                        const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+                        const today = new Date();
+                        const contractStartDay = new Date(contract.StartDate + 'T00:00:00Z').getUTCDate();
+                        let cycleStart, cycleEnd;
+                        if (today.getUTCDate() < contractStartDay) {
+                            cycleStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, contractStartDay));
+                            cycleEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), contractStartDay - 1));
+                        } else {
+                            cycleStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), contractStartDay));
+                            cycleEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, contractStartDay - 1));
+                        }
+                        
+                        const contractStartDate = new Date(contract.StartDate + 'T00:00:00Z');
+                        const contractEndDate = new Date(contract.EndDate + 'T00:00:00Z');
+                        if (cycleStart < contractStartDate) cycleStart = contractStartDate;
+                        if (cycleEnd > contractEndDate) cycleEnd = contractEndDate;
+
+                        let totalPayable = 0;
+                        let totalPaid = 0;
+                        let currentCycleDate = new Date(cycleStart);
+                        while(currentCycleDate <= cycleEnd) {
+                            if(currentCycleDate.getUTCDay() !== 0) {
+                                totalPayable += contract.Daily;
+                                const dateStr = currentCycleDate.toISOString().split('T')[0];
+                                const payment = payments.find(p => p.Date === dateStr);
+                                if(payment) totalPaid += payment.Amount;
+                            }
+                            currentCycleDate.setUTCDate(currentCycleDate.getUTCDate() + 1);
+                        }
+                        const unpaidAmount = totalPayable - totalPaid;
+
+                        document.getElementById('cycle-summary').innerHTML = \`
+                            <h2 class="text-xl font-bold mb-4">Monthly Cycle Summary</h2>
+                            <p class="text-sm text-center text-gray-500 mb-4">Cycle Period: \${cycleStart.toLocaleDateString('en-US')} to \${cycleEnd.toLocaleDateString('en-US')}</p>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div><p class="text-xs text-gray-500">Total Payable</p><p class="text-lg font-bold">\${formatCurrency(totalPayable)}</p></div>
+                                <div><p class="text-xs text-gray-500">Total Paid</p><p class="text-lg font-bold text-green-600">\${formatCurrency(totalPaid)}</p></div>
+                                <div><p class="text-xs text-gray-500">Unpaid Balance</p><p class="text-lg font-bold text-red-500">\${formatCurrency(unpaidAmount)}</p></div>
+                            </div>\`;
+                        
+                        const renderCalendar = (year, month, containerId) => {
+                            const container = document.getElementById(containerId);
+                             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                           
+                            const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+                            const daysInMonth = new Date(year, month + 1, 0).getDate();
+                            const startingDay = firstDayOfMonth.getUTCDay();
+
+                            let calendarHTML = '<div class="flex items-center justify-between mb-4"><h4 class="text-lg font-bold">' + monthNames[month] + ' ' + year + '</h4></div><div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500">' + daysOfWeek.map(d => '<div>' + d + '</div>').join('') + '</div><div class="grid grid-cols-7 gap-1 mt-2">';
+                            for (let i = 0; i < startingDay; i++) { calendarHTML += '<div></div>'; }
+                            for (let i = 1; i <= daysInMonth; i++) {
+                                const currentDate = new Date(Date.UTC(year, month, i));
+                                let dayClasses = 'h-14 w-full flex flex-col items-center justify-center rounded-lg text-sm'; let dayTextContent = '';
+                                
+                                if (currentDate >= cycleStart && currentDate <= cycleEnd) {
+                                    const paymentOnDate = payments.find(p => new Date(p.Date + 'T00:00:00Z').getTime() === currentDate.getTime());
+                                    dayClasses += ' bg-gray-50';
+                                    if (currentDate.getUTCDay() === 0) { dayTextContent = '<span class="status-badge status-rest">REST</span>'; } 
+                                    else if (paymentOnDate) { dayTextContent = paymentOnDate.Amount >= contract.Daily ? '<span class="status-badge status-paid">PAID</span>' : '<span class="status-badge status-partial">PARTIAL</span>'; } 
+                                    else { dayTextContent = '<span class="status-badge status-unpaid">UNPAID</span>'; }
+                                } else { dayClasses += ' text-gray-400'; }
+
+                                calendarHTML += '<div class="' + dayClasses + '"><span>' + i + '</span>' + dayTextContent + '</div>';
+                            }
+                            calendarHTML += '</div>';
+                            container.innerHTML = calendarHTML;
+                        };
+                        
+                        let currentCalDate = new Date(cycleStart);
+                        currentCalDate.setUTCDate(1);
+                        let processedMonths = {};
+
+                        while (currentCalDate <= cycleEnd) {
+                            const monthKey = \`\${currentCalDate.getFullYear()}-\${currentCalDate.getMonth()}\`;
+                            if (!processedMonths[monthKey]) {
+                                const calWrapper = document.createElement('div');
+                                calWrapper.id = 'calendar-' + monthKey;
+                                calWrapper.className = 'mb-6';
+                                document.getElementById('calendar-wrapper').appendChild(calWrapper);
+                                renderCalendar(currentCalDate.getFullYear(), currentCalDate.getMonth(), calWrapper.id);
+                                processedMonths[monthKey] = true;
+                            }
+                            currentCalDate.setUTCMonth(currentCalDate.getUTCMonth() + 1);
+                        }
+                    <\/script>
+                </body>
+                </html>
+                `;
+
+                const blob = new Blob([reportHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Report_${member.FullName.replace(/\s+/g, '_')}.html`;
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+            showAddExpenseModal: () => {
+                if (!can('add_expense')) return;
+                renderAddExpenseModal();
+            },
+            saveExpense: () => {
+                updateAndSaveData(() => {
+                    const newExpense = {
+                        ExpenseID: generateNewID('E-', data.expenses, 'ExpenseID'),
+                        Date: document.getElementById('new-expense-date').value,
+                        Category: document.getElementById('new-expense-category').value,
+                        Amount: parseFloat(document.getElementById('new-expense-amount').value),
+                        MemberID: document.getElementById('new-expense-member').value || null,
+                        Notes: document.getElementById('new-expense-notes').value
+                    };
+
+                    if (!newExpense.Date || !newExpense.Amount || newExpense.Amount <= 0) {
+                        alert('Please enter a valid date and amount.');
+                        return;
+                    }
+                    data.expenses.push(newExpense);
+                });
+                app.closeModal();
+                renderExpensesPage();
+            },
+            showClaimPasswordModal: (memberId, benefitType, amount) => {
+                 const modalHTML = `
+                    <div id="claim-password-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                        <div class="card w-full max-w-sm animate-in fade-in zoom-in-95 duration-200">
+                             <div class="p-6 border-b border-border flex justify-between items-center">
+                                <h3 class="text-xl font-bold">Manager Authentication</h3>
+                                <button onclick="app.closeModal()" class="p-2 rounded-full hover:bg-accent -mr-2"><i data-lucide="x"></i></button>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <p class="text-sm text-muted-foreground">Enter password to claim this benefit.</p>
+                                <div id="claim-error" class="text-red-500 text-sm"></div>
+                                <div>
+                                    <label for="claim-password" class="block text-sm font-medium mb-1">Password</label>
+                                    <input type="password" id="claim-password" class="input w-full p-2">
+                                </div>
+                            </div>
+                            <div class="p-4 bg-muted/50 border-t border-border flex justify-end gap-3">
+                                <button onclick="app.closeModal()" class="btn-secondary px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                                <button onclick="app.confirmClaimBenefit('${memberId}', '${benefitType}', ${amount})" class="btn-primary px-4 py-2 rounded-lg font-semibold">Confirm Claim</button>
+                            </div>
+                        </div>
+                    </div>
+                 `;
+                 document.getElementById('modal-placeholder').innerHTML = modalHTML;
+                 lucide.createIcons();
+            },
+            confirmClaimBenefit: (memberId, benefitType, amount) => {
+                const pass = document.getElementById('claim-password').value;
+                const storedPass = localStorage.getItem('appPassword');
+                if (pass === storedPass) {
+                    app.claimBenefit(memberId, benefitType, amount);
+                    app.closeModal();
+                } else {
+                    document.getElementById('claim-error').textContent = 'Incorrect password.';
+                }
+            },
+            claimBenefit: (memberId, benefitType, amount) => {
+                updateAndSaveData(() => {
+                    const newBenefit = {
+                        BenefitID: generateNewID('B-', data.benefits, 'BenefitID'),
+                        MemberID: memberId,
+                        Type: benefitType,
+                        Date: new Date().toISOString().split('T')[0],
+                        Amount: amount,
+                        Notes: `${benefitType} claimed.`
+                    };
+                    data.benefits.push(newBenefit);
+                });
+                renderBenefitsPage();
+                lucide.createIcons();
+            },
+            handleChangePassword: () => {
+                const oldPass = document.getElementById('old-password').value;
+                const newPass = document.getElementById('new-password').value;
+                const confirmPass = document.getElementById('confirm-password').value;
+                const storedPass = localStorage.getItem('appPassword');
+
+                if (oldPass !== storedPass) {
+                    alert('Old password does not match.');
+                    return;
+                }
+                if (!newPass || newPass.length < 4) {
+                    alert('New password must be at least 4 characters long.');
+                    return;
+                }
+                if (newPass !== confirmPass) {
+                    alert('New passwords do not match.');
+                    return;
+                }
+                localStorage.setItem('appPassword', newPass);
+                alert('Password changed successfully!');
+                document.getElementById('old-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+            },
+            exportAllData: async () => {
+                const appData = await idb.get('data', 'appData');
+                const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'fleet_manager_backup.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+            importData: (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (importedData.members && importedData.contracts) {
+                            if(confirm('This will overwrite all current data. Are you sure you want to continue?')) {
+                                await idb.set('data', 'appData', importedData);
+                                alert('Data imported successfully! The app will now reload.');
+                                location.reload();
+                            }
+                        } else {
+                            alert('Invalid data file.');
+                        }
+                    } catch (err) {
+                        alert('Error reading file. Make sure it is a valid backup file.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+
+
+        // --- AUTHENTICATION ---
+        const renderLoginScreen = () => {
+            authScreen.innerHTML = `
+                <div class="w-full max-w-sm mx-auto">
+                    <div class="card p-8 space-y-4">
+                         <div class="text-center">
+                            <h2 class="text-2xl font-bold">Login</h2>
+                            <p class="text-muted-foreground">Enter your password to access the app.</p>
+                         </div>
+                         <div id="login-error" class="text-red-500 text-sm text-center"></div>
+                         <div>
+                            <label for="password" class="block text-sm font-medium mb-1">Password</label>
+                            <input type="password" id="password" class="input w-full p-2">
+                         </div>
+                         <button id="login-btn" class="w-full btn-primary py-2 rounded-lg font-semibold">Login</button>
+                         <div class="text-center pt-2">
+                             <button onclick="document.getElementById('import-file-input-auth').click()" class="text-sm text-blue-600 hover:underline">Import Data from Backup</button>
+                             <input type="file" id="import-file-input-auth" class="hidden" accept=".json" onchange="app.importData(event)">
+                         </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('login-btn').addEventListener('click', handleLogin);
+            document.getElementById('password').addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') handleLogin();
+            });
+        };
+
+        const renderSetupScreen = () => {
+            authScreen.innerHTML = `
+                <div class="w-full max-w-sm mx-auto">
+                    <div class="card p-8 space-y-4">
+                         <div class="text-center">
+                            <h2 class="text-2xl font-bold">Setup Password</h2>
+                            <p class="text-muted-foreground">Create a password to secure your application.</p>
+                         </div>
+                         <div id="setup-error" class="text-red-500 text-sm text-center"></div>
+                         <div>
+                            <label for="new-password-setup" class="block text-sm font-medium mb-1">New Password</label>
+                            <input type="password" id="new-password-setup" class="input w-full p-2">
+                         </div>
+                          <div>
+                            <label for="confirm-password-setup" class="block text-sm font-medium mb-1">Confirm Password</label>
+                            <input type="password" id="confirm-password-setup" class="input w-full p-2">
+                         </div>
+                         <button id="setup-btn" class="w-full btn-primary py-2 rounded-lg font-semibold">Save and Start</button>
+                           <div class="text-center pt-2">
+                             <button onclick="document.getElementById('import-file-input-auth').click()" class="text-sm text-blue-600 hover:underline">Or Import Data from Backup</button>
+                              <input type="file" id="import-file-input-auth" class="hidden" accept=".json" onchange="app.importData(event)">
+                         </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('setup-btn').addEventListener('click', handleSetup);
+        };
+
+        const handleLogin = () => {
+            const pass = document.getElementById('password').value;
+            const storedPass = localStorage.getItem('appPassword');
+            if (pass === storedPass) {
+                state.isAuthenticated = true;
+                authScreen.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                initializeMainApp();
+            } else {
+                const errorDiv = document.getElementById('login-error');
+                errorDiv.textContent = 'Incorrect password. Please try again.';
+            }
+        };
+
+        const handleSetup = () => {
+            const newPass = document.getElementById('new-password-setup').value;
+            const confirmPass = document.getElementById('confirm-password-setup').value;
+            const errorDiv = document.getElementById('setup-error');
+
+            if (!newPass || newPass.length < 4) {
+                 errorDiv.textContent = 'Password must be at least 4 characters long.';
+                 return;
+            }
+            if (newPass !== confirmPass) {
+                errorDiv.textContent = 'Passwords do not match.';
+                return;
+            }
+
+            localStorage.setItem('appPassword', newPass);
+            state.isAuthenticated = true;
+            authScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            initializeMainApp();
+        };
+
+        const initializeMainApp = async () => {
+            const savedData = await idb.get('data', 'appData');
+            if (savedData) {
+                Object.assign(data, savedData);
+            } else {
+                await idb.set('data', 'appData', initialData);
+                Object.assign(data, initialData);
+            }
+            // Set initial state based on logged in user
+            state.currentUser = data.users[0];
+            handleNav('members');
+            applyTheme(state.currentUser.Theme);
+        };
+
+        // --- INITIALIZATION ---
+        await idb.init('FleetManagerDB', 1, ['data']);
+        if (localStorage.getItem('appPassword')) {
+            renderLoginScreen();
+        } else {
+            renderSetupScreen();
+        }
+        
+    });
+    </script>
+</body>
+</html>
+
